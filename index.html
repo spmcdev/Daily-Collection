@@ -61,14 +61,18 @@
   <table id="loans-table">
     <thead>
       <tr>
-        <th>ID</th>
         <th>Borrower ID</th>
         <th>Borrower</th>
         <th>Amount</th>
         <th>Interest %</th>
         <th>Weeks</th>
-        <th>Start Date</th>
-        <th>Completion Status</th>
+        <th>Paid Weeks</th>
+        <th>Remaining Weeks</th>
+        <th>Total Paid</th>
+        <th>Remaining Amount</th>
+        <th>Weekly Installment</th>
+        <th>Next Due Date</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -112,18 +116,37 @@ async function loadLoans(){
     tbody.innerHTML = "";
 
     loans.forEach(loan => {
+        const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
         const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
-        const completionStatus = paidWeeks === loan.weeks ? "Completed" : "In Progress";
+        const remainingWeeks = loan.weeks - paidWeeks;
+        const remainingAmount = (weeklyInstallment * remainingWeeks).toFixed(2);
+        const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
+
+        // Next due date
+        let nextDueDate = "-";
+        if(remainingWeeks > 0){
+            const nextWeekNumber = paidWeeks + 1;
+            const dueDateObj = new Date(loan.start_date);
+            dueDateObj.setDate(dueDateObj.getDate() + 7 * nextWeekNumber);
+            nextDueDate = dueDateObj.toLocaleDateString("si-LK");
+        }
 
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${loan.id}</td>
-                        <td>${loan.borrower_id}</td>
+        tr.innerHTML = `<td>${loan.borrower_id}</td>
                         <td>${loan.borrower}</td>
                         <td>${formatLKR(loan.amount)}</td>
-                        <td>${loan.interest}%</td>
+                        <td>${loan.interest}</td>
                         <td>${loan.weeks}</td>
-                        <td>${new Date(loan.start_date).toLocaleDateString("si-LK")}</td>
-                        <td style="font-weight: bold; color: ${completionStatus === 'Completed' ? '#27ae60' : '#f39c12'};">${completionStatus}</td>`;
+                        <td>${paidWeeks}</td>
+                        <td>${remainingWeeks}</td>
+                        <td>${formatLKR(totalPaid)}</td>
+                        <td>${formatLKR(remainingAmount)}</td>
+                        <td>${formatLKR(weeklyInstallment)}</td>
+                        <td>${nextDueDate}</td>
+                        <td>
+                            <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
+                            <button onclick="deleteLoan(${loan.id})">Delete</button>
+                        </td>`;
         tbody.appendChild(tr);
     });
 }
