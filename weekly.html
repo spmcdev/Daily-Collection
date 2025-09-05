@@ -89,7 +89,7 @@ async function loadAllBorrowersHorizontal(){
         borrowerDiv.style.marginBottom = "25px";
 
         const header = document.createElement("div");
-        header.innerHTML = `<strong>Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'}</strong>`;
+        header.innerHTML = `<strong>Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'}</strong>`;
         header.style.marginBottom = "5px";
         borrowerDiv.appendChild(header);
 
