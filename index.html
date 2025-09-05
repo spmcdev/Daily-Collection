@@ -244,9 +244,18 @@ function closeModal(){
 // Delete Loan
 async function deleteLoan(loanId){
     if(!confirm("Are you sure you want to delete this loan?")) return;
-    await fetch(`${API_URL}/loans/${loanId}`, { method: "DELETE" });
-    loadLoans();
-    loadDashboard();
+
+    try {
+        const res = await fetch(`${API_URL}/api/loans/${loanId}`, { method: "DELETE" });
+        if(res.ok){
+            loadLoans();
+            loadDashboard();
+        } else {
+            alert("Failed to delete loan.");
+        }
+    } catch(error) {
+        alert("Network error occurred.");
+    }
 }
 
 // Export to CSV

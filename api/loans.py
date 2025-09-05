@@ -60,6 +60,21 @@ def handler(event, context):
                 'body': json.dumps(response.data[0] if response.data else {})
             }
 
+        elif method == 'DELETE':
+            path = event.get('path', '')
+            loan_id = path.split('/')[-1]
+            if loan_id:
+                print(f"Deleting loan with ID: {loan_id}")
+                # First delete related payments
+                supabase.table("payments").delete().eq("loan_id", int(loan_id)).execute()
+                # Then delete the loan
+                response = supabase.table("loans").delete().eq("id", int(loan_id)).execute()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Loan deleted successfully'})
+                }
+
         else:
             return {
                 'statusCode': 405,
