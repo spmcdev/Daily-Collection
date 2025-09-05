@@ -59,7 +59,8 @@
 <div class="section">
    <h2>Recent Loans</h2>
    <div style="margin-bottom: 15px;">
-       <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Export to CSV</button>
+       <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Export to CSV</button>
+       <button onclick="exportToJSON()" style="background-color: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Export to JSON</button>
    </div>
    <table id="loans-table">
     <thead>
@@ -76,6 +77,7 @@
         <th>Weekly Installment</th>
         <th>Next Due Date</th>
         <th>Completion Status</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -146,11 +148,100 @@ async function loadLoans(){
                         <td>${formatLKR(remainingAmount)}</td>
                         <td>${formatLKR(weeklyInstallment)}</td>
                         <td>${nextDueDate}</td>
-                        <td style="font-weight: bold; color: ${paidWeeks === loan.weeks ? '#27ae60' : '#f39c12'};">${paidWeeks === loan.weeks ? 'Completed' : 'In Progress'}</td>`;
+                        <td style="font-weight: bold; color: ${paidWeeks === loan.weeks ? '#27ae60' : '#f39c12'};">${paidWeeks === loan.weeks ? 'Completed' : 'In Progress'}</td>
+                        <td>
+                            <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
+                            <button onclick="deleteLoan(${loan.id})">Delete</button>
+                        </td>`;
         tbody.appendChild(tr);
     });
 }
 
+// Edit Loan
+function editLoan(id, borrowerId, borrower, amount, interest, weeks, startDate){
+    // Create edit modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+        z-index: 1000;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; width: 400px; max-width: 90%;">
+            <h3>Edit Loan</h3>
+            <form id="edit-form">
+                <label>Borrower ID:</label>
+                <input type="text" id="edit-borrower-id" value="${borrowerId}" required><br><br>
+
+                <label>Borrower Name:</label>
+                <input type="text" id="edit-borrower" value="${borrower}" required><br><br>
+
+                <label>Loan Amount:</label>
+                <input type="number" id="edit-amount" value="${amount}" required><br><br>
+
+                <label>Interest (%):</label>
+                <input type="number" id="edit-interest" value="${interest}" step="0.1" required><br><br>
+
+                <label>Weeks:</label>
+                <input type="number" id="edit-weeks" value="${weeks}" required><br><br>
+
+                <label>Start Date:</label>
+                <input type="date" id="edit-start-date" value="${startDate}" required><br><br>
+
+                <button type="submit">Update Loan</button>
+                <button type="button" onclick="closeModal()" style="background: #95a5a6; margin-left: 10px;">Cancel</button>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle form submission
+    document.getElementById("edit-form").onsubmit = async function(e){
+        e.preventDefault();
+
+        const updatedLoan = {
+            borrower_id: document.getElementById("edit-borrower-id").value.trim(),
+            borrower: document.getElementById("edit-borrower").value.trim(),
+            amount: parseFloat(document.getElementById("edit-amount").value),
+            interest: parseFloat(document.getElementById("edit-interest").value),
+            weeks: parseInt(document.getElementById("edit-weeks").value),
+            start_date: document.getElementById("edit-start-date").value
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/loans/${id}`, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(updatedLoan)
+            });
+
+            if(!res.ok) throw new Error(await res.text());
+            alert("Loan updated successfully!");
+            closeModal();
+            loadLoans();
+            loadDashboard();
+        } catch(err) {
+            console.error(err);
+            alert("Failed to update loan. See console for details.");
+        }
+    };
+}
+
+// Close modal function
+function closeModal(){
+    const modal = document.querySelector('div[style*="position: fixed"]');
+    if(modal) modal.remove();
+}
+
+// Delete Loan
+async function deleteLoan(loanId){
+    if(!confirm("Are you sure you want to delete this loan?")) return;
+    await fetch(`${API_URL}/loans/${loanId}`, { method: "DELETE" });
+    loadLoans();
+    loadDashboard();
+}
 
 // Export to CSV
 async function exportToCSV(){
@@ -181,6 +272,50 @@ async function exportToCSV(){
     window.URL.revokeObjectURL(url);
 }
 
+// Export to JSON
+async function exportToJSON(){
+    const loansRes = await fetch(`${API_URL}/api/loans`);
+    const loans = await loansRes.json();
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
+    const payments = await paymentsRes.json();
+
+    const exportData = {
+        export_date: new Date().toISOString(),
+        loans: loans.map(loan => {
+            const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
+            const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+            const remainingWeeks = loan.weeks - paidWeeks;
+            const remainingAmount = (weeklyInstallment * remainingWeeks).toFixed(2);
+            const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
+            const completionStatus = paidWeeks === loan.weeks ? "Completed" : "In Progress";
+
+            return {
+                ...loan,
+                weekly_installment: parseFloat(weeklyInstallment),
+                paid_weeks: paidWeeks,
+                remaining_weeks: remainingWeeks,
+                total_paid: parseFloat(totalPaid),
+                remaining_amount: parseFloat(remainingAmount),
+                completion_status: completionStatus
+            };
+        }),
+        payments: payments,
+        summary: {
+            total_loans: loans.length,
+            total_amount: loans.reduce((sum, loan) => sum + loan.amount, 0),
+            total_received: payments.reduce((sum, payment) => sum + payment.amount, 0),
+            active_loans: loans.filter(loan => payments.filter(p => p.loan_id === loan.id).length < loan.weeks).length
+        }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `loans_export_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
 
 // Call both on load
 window.onload = function(){
