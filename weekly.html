@@ -25,6 +25,7 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 .unpaid { background-color: #e74c3c; color: white; }
 button { cursor: pointer; background-color: #3498db; color: white; border: none; border-radius: 5px; padding: 3px 6px; margin-top: 3px; }
 button:hover { background-color: #2980b9; }
+button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 
 #check-container { text-align: center; margin-bottom: 20px; }
 #check-container input { padding: 6px; font-size: 16px; }
@@ -122,27 +123,69 @@ async function loadAllBorrowersHorizontal(){
 
 // Mark payment as paid
 async function markPaidBackend(loanId, week, amount){
+    // Find the clicked week box and disable it
+    const weekBoxes = document.querySelectorAll('.week-box');
+    let clickedBox = null;
+    weekBoxes.forEach(box => {
+        if(box.onclick && box.innerHTML.includes(`Week ${week}`)){
+            clickedBox = box;
+        }
+    });
+
+    if(clickedBox){
+        clickedBox.style.pointerEvents = 'none';
+        clickedBox.style.opacity = '0.6';
+        clickedBox.innerHTML = 'Processing...';
+    }
+
     const paymentData = { loan_id: loanId, week, amount };
     const res = await fetch(`${API_URL}/api/payments`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(paymentData)
     });
+
     if(res.ok){
         await res.json();
         loadAllBorrowersHorizontal();
     } else {
         alert("Failed to mark payment.");
+        // Re-enable the box if failed
+        if(clickedBox){
+            clickedBox.style.pointerEvents = 'auto';
+            clickedBox.style.opacity = '1';
+        }
     }
 }
 
 // Undo payment
 async function undoPayment(paymentId){
+    // Find the undo button and disable it
+    const undoButtons = document.querySelectorAll('button[onclick*="undoPayment"]');
+    let clickedButton = null;
+    undoButtons.forEach(btn => {
+        if(btn.onclick.toString().includes(paymentId)){
+            clickedButton = btn;
+        }
+    });
+
+    if(clickedButton){
+        clickedButton.disabled = true;
+        clickedButton.innerHTML = 'Processing...';
+        clickedButton.style.backgroundColor = '#95a5a6';
+    }
+
     const res = await fetch(`${API_URL}/payments/${paymentId}`, { method: "DELETE" });
     if(res.ok){
         loadAllBorrowersHorizontal();
     } else {
         alert("Failed to undo payment.");
+        // Re-enable the button if failed
+        if(clickedButton){
+            clickedButton.disabled = false;
+            clickedButton.innerHTML = 'Undo';
+            clickedButton.style.backgroundColor = '#e74c3c';
+        }
     }
 }
 
