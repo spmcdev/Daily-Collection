@@ -29,7 +29,7 @@ class Loan(BaseModel):
     amount: float
     interest: float
     weeks: int
-    start_date: date
+    start_date: str  # Changed to str for compatibility
 
 class Payment(BaseModel):
     loan_id: int
