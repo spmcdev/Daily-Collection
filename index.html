@@ -136,6 +136,12 @@ async function loadLoans(){
             nextDueDate = dueDateObj.toLocaleDateString("si-LK");
         }
 
+        // Smart weekly installment display
+        const isCompleted = paidWeeks === loan.weeks;
+        const weeklyDisplay = isCompleted ?
+            '<span style="color: #27ae60; font-weight: bold;">0</span>' :
+            formatLKR(weeklyInstallment);
+
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${loan.borrower_id}</td>
                         <td>${loan.borrower}</td>
@@ -146,9 +152,9 @@ async function loadLoans(){
                         <td>${remainingWeeks}</td>
                         <td>${formatLKR(totalPaid)}</td>
                         <td>${formatLKR(remainingAmount)}</td>
-                        <td>${formatLKR(weeklyInstallment)}</td>
+                        <td>${weeklyDisplay}</td>
                         <td>${nextDueDate}</td>
-                        <td style="font-weight: bold; color: ${paidWeeks === loan.weeks ? '#27ae60' : '#f39c12'};">${paidWeeks === loan.weeks ? 'Completed' : 'In Progress'}</td>
+                        <td style="font-weight: bold; color: ${isCompleted ? '#27ae60' : '#f39c12'};">${isCompleted ? 'Completed' : 'In Progress'}</td>
                         <td>
                             <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
                             <button onclick="deleteLoan(${loan.id})">Delete</button>
