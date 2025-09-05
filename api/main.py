@@ -41,14 +41,20 @@ class Payment(BaseModel):
 # -------------------------
 @app.get("/loans")
 def get_loans():
-    response = supabase.table("loans").select("*").execute()
-    return response.data
+    try:
+        response = supabase.table("loans").select("*").execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/loans")
 def add_loan(loan: Loan):
-    loan_dict = loan.dict()
-    response = supabase.table("loans").insert(loan_dict).execute()
-    return response.data[0]
+    try:
+        loan_dict = loan.dict()
+        response = supabase.table("loans").insert(loan_dict).execute()
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/loans/{loan_id}")
 def delete_loan(loan_id: int):
@@ -67,8 +73,11 @@ def delete_loan(loan_id: int):
 # -------------------------
 @app.get("/payments")
 def get_payments():
-    response = supabase.table("payments").select("*").execute()
-    return response.data
+    try:
+        response = supabase.table("payments").select("*").execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/payments")
 def add_payment(payment: Payment):
