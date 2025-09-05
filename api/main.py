@@ -95,4 +95,4 @@ def delete_payment(payment_id: int):
 
 # Handler for Vercel
 from mangum import Mangum
-handler = Mangum(app)
+handler = Mangum(app, lifespan="off")
