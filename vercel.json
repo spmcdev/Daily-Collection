@@ -1,15 +1,17 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/main.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
+      "src": "/api/loans",
+      "dest": "/api/loans.py"
+    },
+    {
+      "src": "/api/payments",
+      "dest": "/api/payments.py"
+    },
+    {
       "src": "/(.*)",
-      "dest": "api/main.py"
+      "dest": "/$1"
     }
   ]
 }
