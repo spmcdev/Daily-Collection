@@ -50,10 +50,12 @@ def handler(event, context):
             print(f"Request body: {body}")
 
             # Check if payment already exists for this loan_id and week
+            print(f"Checking for existing payment: loan_id={body['loan_id']}, week={body['week']}")
             existing_payment = supabase.table("payments").select("*").eq("loan_id", body['loan_id']).eq("week", body['week']).execute()
+            print(f"Existing payment query result: {existing_payment.data}")
 
             if existing_payment.data and len(existing_payment.data) > 0:
-                print(f"Payment already exists for loan_id {body['loan_id']}, week {body['week']}")
+                print(f"DUPLICATE DETECTED: Payment already exists for loan_id {body['loan_id']}, week {body['week']}")
                 # Return the existing payment data
                 return {
                     'statusCode': 200,
@@ -67,8 +69,9 @@ def handler(event, context):
                 }
             else:
                 # Create new payment
-                print(f"Creating new payment for loan_id {body['loan_id']}, week {body['week']}")
+                print(f"Creating NEW payment for loan_id {body['loan_id']}, week {body['week']}")
                 response = supabase.table("payments").insert(body).execute()
+                print(f"Insert result: {response.data}")
                 return {
                     'statusCode': 200,
                     'headers': {
