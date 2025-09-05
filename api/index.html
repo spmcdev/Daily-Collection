@@ -68,7 +68,9 @@
         <th>Weekly Installment</th>
         <th>Paid Weeks</th>
         <th>Remaining Weeks</th>
+        <th>Total Paid</th>
         <th>Remaining Amount</th>
+        <th>Weekly Installment</th>
         <th>Next Due Date</th>
         <th>Actions</th>
       </tr>
@@ -118,6 +120,7 @@ async function loadLoans(){
         const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
         const remainingWeeks = loan.weeks - paidWeeks;
         const remainingAmount = (weeklyInstallment * remainingWeeks).toFixed(2);
+        const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
 
         // Next due date
         let nextDueDate = "-";
@@ -134,10 +137,11 @@ async function loadLoans(){
                         <td>${formatLKR(loan.amount)}</td>
                         <td>${loan.interest}</td>
                         <td>${loan.weeks}</td>
-                        <td>${formatLKR(weeklyInstallment)}</td>
                         <td>${paidWeeks}</td>
                         <td>${remainingWeeks}</td>
+                        <td>${formatLKR(totalPaid)}</td>
                         <td>${formatLKR(remainingAmount)}</td>
+                        <td>${formatLKR(weeklyInstallment)}</td>
                         <td>${nextDueDate}</td>
                         <td>
                             <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
