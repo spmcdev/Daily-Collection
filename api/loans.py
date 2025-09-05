@@ -6,15 +6,29 @@ from supabase import create_client, Client
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
+print(f"SUPABASE_URL: {SUPABASE_URL}")
+print(f"SUPABASE_ANON_KEY present: {bool(SUPABASE_ANON_KEY)}")
+
 if not SUPABASE_URL or not SUPABASE_ANON_KEY:
     print("Missing Supabase environment variables")
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    supabase = None
+else:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def handler(event, context):
     try:
         print(f"Event: {event}")
         print(f"Method: {event.get('httpMethod')}")
+
+        if supabase is None:
+            return {
+                'statusCode': 500,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'Supabase not configured'})
+            }
 
         if event['httpMethod'] == 'GET':
             response = supabase.table("loans").select("*").execute()
