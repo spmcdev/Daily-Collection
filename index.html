@@ -247,11 +247,18 @@ async function deleteLoan(loanId){
 
     try {
         const res = await fetch(`${API_URL}/api/loans/${loanId}`, { method: "DELETE" });
+        const data = await res.json();
+
         if(res.ok){
+            alert("Loan deleted successfully!");
             loadLoans();
             loadDashboard();
         } else {
-            alert("Failed to delete loan.");
+            if(res.status === 400 && data.error === 'Cannot delete loan with ongoing payments'){
+                alert(`Cannot delete loan: ${data.details}\n\nOnly completed loans can be deleted.`);
+            } else {
+                alert(`Failed to delete loan: ${data.error || 'Unknown error'}`);
+            }
         }
     } catch(error) {
         alert("Network error occurred.");
