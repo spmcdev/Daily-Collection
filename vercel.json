@@ -6,7 +6,7 @@
       "dest": "/api/loans.py"
     },
     {
-      "src": "/api/payments",
+      "src": "/api/payments/?(.*)",
       "dest": "/api/payments.py"
     },
     {

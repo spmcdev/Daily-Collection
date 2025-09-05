@@ -1,13 +1,21 @@
-from supabase import create_client, Client
+import json
 import os
-from dotenv import load_dotenv
+from supabase import create_client, Client
 
-load_dotenv()
+# Get environment variables directly (dotenv not needed in Vercel)
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
-supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_ANON_KEY"))
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    print("Missing Supabase environment variables")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def handler(event, context):
     try:
+        print(f"Event: {event}")
+        print(f"Method: {event.get('httpMethod')}")
+
         if event['httpMethod'] == 'GET':
             response = supabase.table("loans").select("*").execute()
             return {
@@ -18,11 +26,11 @@ def handler(event, context):
                     'Access-Control-Allow-Headers': '*',
                     'Access-Control-Allow-Methods': '*'
                 },
-                'body': str(response.data)
+                'body': json.dumps(response.data)
             }
         elif event['httpMethod'] == 'POST':
-            import json
-            body = json.loads(event['body'])
+            body = json.loads(event.get('body', '{}'))
+            print(f"Request body: {body}")
             response = supabase.table("loans").insert(body).execute()
             return {
                 'statusCode': 200,
@@ -32,14 +40,24 @@ def handler(event, context):
                     'Access-Control-Allow-Headers': '*',
                     'Access-Control-Allow-Methods': '*'
                 },
-                'body': str([response.data[0]])
+                'body': json.dumps(response.data[0] if response.data else {})
+            }
+        else:
+            return {
+                'statusCode': 405,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'Method not allowed'})
             }
     except Exception as e:
+        print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': str({'error': str(e)})
+            'body': json.dumps({'error': str(e)})
         }
