@@ -72,6 +72,7 @@
         <th>Remaining Amount</th>
         <th>Weekly Installment</th>
         <th>Next Due Date</th>
+        <th>Completion Status</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -143,6 +144,7 @@ async function loadLoans(){
                         <td>${formatLKR(remainingAmount)}</td>
                         <td>${formatLKR(weeklyInstallment)}</td>
                         <td>${nextDueDate}</td>
+                        <td style="font-weight: bold; color: ${paidWeeks === loan.weeks ? '#27ae60' : '#f39c12'};">${paidWeeks === loan.weeks ? 'Completed' : 'In Progress'}</td>
                         <td>
                             <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
                             <button onclick="deleteLoan(${loan.id})">Delete</button>
