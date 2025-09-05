@@ -1,6 +1,5 @@
 import json
 import os
-from supabase import create_client, Client
 
 # Get environment variables directly (dotenv not needed in Vercel)
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -9,11 +8,16 @@ SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 print(f"SUPABASE_URL: {SUPABASE_URL}")
 print(f"SUPABASE_ANON_KEY present: {bool(SUPABASE_ANON_KEY)}")
 
-if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-    print("Missing Supabase environment variables")
-    supabase = None
+supabase = None
+if SUPABASE_URL and SUPABASE_ANON_KEY:
+    try:
+        from supabase import create_client, Client
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        print("Supabase client created successfully")
+    except Exception as e:
+        print(f"Failed to create Supabase client: {e}")
 else:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    print("Missing Supabase environment variables")
 
 def handler(event, context):
     try:
