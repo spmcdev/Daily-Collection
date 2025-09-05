@@ -138,7 +138,7 @@ async function markPaidBackend(loanId, week, amount){
 
 // Undo payment
 async function undoPayment(paymentId){
-    const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/payments/${paymentId}`, { method: "DELETE" });
     if(res.ok){
         loadAllBorrowersHorizontal();
     } else {

@@ -130,15 +130,28 @@ def add_payment(payment: Payment):
     response = supabase.table("payments").insert(payment_dict).execute()
     return response.data[0]
 
-@app.delete("/api/payments/{payment_id}")
+@app.delete("/payments/{payment_id}")
 def delete_payment(payment_id: int):
+    print(f"DELETE request for payment_id: {payment_id}")
     if supabase is None:
+        print("Supabase not configured")
         raise HTTPException(status_code=500, detail="Database not configured")
-    response = supabase.table("payments").select("*").eq("id", payment_id).execute()
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    supabase.table("payments").delete().eq("id", payment_id).execute()
-    return {"detail": f"Payment {payment_id} deleted"}
+
+    try:
+        response = supabase.table("payments").select("*").eq("id", payment_id).execute()
+        print(f"Select response: {response.data}")
+
+        if not response.data:
+            print(f"Payment {payment_id} not found")
+            raise HTTPException(status_code=404, detail="Payment not found")
+
+        delete_response = supabase.table("payments").delete().eq("id", payment_id).execute()
+        print(f"Delete response: {delete_response}")
+
+        return {"detail": f"Payment {payment_id} deleted"}
+    except Exception as e:
+        print(f"Error deleting payment: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Handler for Vercel
 from mangum import Mangum
