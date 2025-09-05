@@ -255,7 +255,7 @@ async function deleteLoan(loanId){
             loadDashboard();
         } else {
             if(res.status === 400 && data.error === 'Cannot delete loan with ongoing payments'){
-                alert(`Cannot delete loan: ${data.details}\n\nOnly completed loans can be deleted.`);
+                alert(`Cannot delete loan: ${data.details}\n\nYou can delete:\n• New loans (0 payments)\n• Completed loans (all payments made)`);
             } else {
                 alert(`Failed to delete loan: ${data.error || 'Unknown error'}`);
             }

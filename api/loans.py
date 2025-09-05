@@ -84,27 +84,29 @@ def handler(event, context):
 
                 print(f"Loan {loan_id_int}: weeks={loan['weeks']}, payments={total_payments}")
 
-                if total_payments >= loan['weeks']:
-                    # Loan is completed - allow deletion
-                    print(f"Loan {loan_id_int} is completed ({total_payments}/{loan['weeks']} payments) - deleting")
-                    # Delete related payments first
+                if total_payments == 0 or total_payments >= loan['weeks']:
+                    # Allow deletion for: new loans (0 payments) or completed loans (all payments made)
+                    status_msg = "new" if total_payments == 0 else "completed"
+                    print(f"Loan {loan_id_int} is {status_msg} ({total_payments}/{loan['weeks']} payments) - deleting")
+
+                    # Delete related payments first (if any)
                     supabase.table("payments").delete().eq("loan_id", loan_id_int).execute()
                     # Then delete the loan
                     response = supabase.table("loans").delete().eq("id", loan_id_int).execute()
                     return {
                         'statusCode': 200,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'message': 'Completed loan deleted successfully'})
+                        'body': json.dumps({'message': f'{status_msg.capitalize()} loan deleted successfully'})
                     }
                 else:
-                    # Loan is not completed - prevent deletion
-                    print(f"Loan {loan_id_int} is NOT completed ({total_payments}/{loan['weeks']} payments) - deletion blocked")
+                    # Loan has partial payments - prevent deletion
+                    print(f"Loan {loan_id_int} has partial payments ({total_payments}/{loan['weeks']}) - deletion blocked")
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                         'body': json.dumps({
                             'error': 'Cannot delete loan with ongoing payments',
-                            'details': f'Loan has {total_payments}/{loan["weeks"]} payments completed'
+                            'details': f'Loan has {total_payments}/{loan["weeks"]} payments completed. Delete all payments first or complete the loan.'
                         })
                     }
 
