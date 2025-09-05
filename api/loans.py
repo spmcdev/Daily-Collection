@@ -65,50 +65,19 @@ def handler(event, context):
             loan_id = path.split('/')[-1]
             if loan_id:
                 loan_id_int = int(loan_id)
-                print(f"Checking loan {loan_id_int} for deletion")
+                print(f"Deleting loan {loan_id_int} and all related payments")
 
-                # Get loan details
-                loan_response = supabase.table("loans").select("*").eq("id", loan_id_int).execute()
-                if not loan_response.data:
-                    return {
-                        'statusCode': 404,
-                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Loan not found'})
-                    }
+                # Delete related payments first
+                supabase.table("payments").delete().eq("loan_id", loan_id_int).execute()
 
-                loan = loan_response.data[0]
+                # Then delete the loan
+                response = supabase.table("loans").delete().eq("id", loan_id_int).execute()
 
-                # Check if loan is completed (all payments made)
-                payments_response = supabase.table("payments").select("*").eq("loan_id", loan_id_int).execute()
-                total_payments = len(payments_response.data) if payments_response.data else 0
-
-                print(f"Loan {loan_id_int}: weeks={loan['weeks']}, payments={total_payments}")
-
-                if total_payments == 0 or total_payments >= loan['weeks']:
-                    # Allow deletion for: new loans (0 payments) or completed loans (all payments made)
-                    status_msg = "new" if total_payments == 0 else "completed"
-                    print(f"Loan {loan_id_int} is {status_msg} ({total_payments}/{loan['weeks']} payments) - deleting")
-
-                    # Delete related payments first (if any)
-                    supabase.table("payments").delete().eq("loan_id", loan_id_int).execute()
-                    # Then delete the loan
-                    response = supabase.table("loans").delete().eq("id", loan_id_int).execute()
-                    return {
-                        'statusCode': 200,
-                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'message': f'{status_msg.capitalize()} loan deleted successfully'})
-                    }
-                else:
-                    # Loan has partial payments - prevent deletion
-                    print(f"Loan {loan_id_int} has partial payments ({total_payments}/{loan['weeks']}) - deletion blocked")
-                    return {
-                        'statusCode': 400,
-                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({
-                            'error': 'Cannot delete loan with ongoing payments',
-                            'details': f'Loan has {total_payments}/{loan["weeks"]} payments completed. Delete all payments first or complete the loan.'
-                        })
-                    }
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'message': 'Loan and all payments deleted successfully'})
+                }
 
         else:
             return {
