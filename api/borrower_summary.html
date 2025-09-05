@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borrower Loan Summary</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f8; }
+nav { background-color: #2c3e50; padding: 12px 20px; text-align: center; }
+nav a { color: #ecf0f1; margin: 0 15px; text-decoration: none; font-weight: bold; font-size: 16px; }
+nav a:hover { color: #f39c12; text-decoration: underline; }
+h1 { text-align: center; margin-top: 25px; color: #34495e; }
+.section { max-width: 1200px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+.section h2 { text-align: center; margin-bottom: 15px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #ddd; }
+th { background-color: #3498db; color: white; }
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
+.week-box { padding: 5px; border-radius: 5px; margin: 2px; display: inline-block; color: white; }
+.paid { background-color: #2ecc71; }
+.unpaid { background-color: #e74c3c; }
+input, button { padding: 8px; font-size: 16px; margin-top: 5px; }
+button { cursor: pointer; background-color: #3498db; color: white; border: none; border-radius: 5px; }
+button:hover { background-color: #2980b9; }
+.summary-totals { display: flex; justify-content: space-between; flex-wrap: wrap; margin-top: 20px; padding: 15px; background-color: #ecf0f1; border-radius: 8px; }
+.summary-totals div { flex: 1 1 200px; margin: 5px; padding: 10px; background-color: #fff; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
+.summary-totals div h3 { margin: 5px 0; font-size: 1em; color: #2c3e50; }
+.summary-totals div p { margin: 0; font-size: 1.1em; font-weight: bold; color: #34495e; }
+</style>
+</head>
+<body>
+<nav>
+  
+</nav>
+
+<h1>Borrower Loan Summary</h1>
+
+<div class="section">
+  <label>Enter Borrower ID:</label>
+  <input type="text" id="borrower-id-input">
+  <button onclick="loadBorrowerSummary()">Search</button>
+</div>
+
+<div class="section" id="summary-container"></div>
+
+<script>
+const API_URL = "";
+
+function formatLKR(amount){
+    return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+async function loadBorrowerSummary(){
+    const borrowerId = document.getElementById("borrower-id-input").value.trim();
+    if(!borrowerId){
+        alert("Enter Borrower ID");
+        return;
+    }
+
+    const loansRes = await fetch(`${API_URL}/api/loans`);
+    const loans = await loansRes.json();
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
+    const payments = await paymentsRes.json();
+
+    const borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
+    const container = document.getElementById("summary-container");
+    container.innerHTML = "";
+
+    if(borrowerLoans.length === 0){
+        container.innerHTML = "<p>No loans found for this borrower.</p>";
+        return;
+    }
+
+    let totalPrincipal = 0;
+    let totalInterest = 0;
+    let totalPaidAll = 0;
+    let totalOutstanding = 0;
+
+    borrowerLoans.forEach((loan,index)=>{
+        const loanDiv = document.createElement("div");
+        loanDiv.style.marginBottom = "25px";
+
+        const loanHeader = document.createElement("h2");
+        loanHeader.innerText = `${String(index+1).padStart(2,'0')}. Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id}`;
+        loanDiv.appendChild(loanHeader);
+
+        const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks).toFixed(2);
+        const principal = loan.amount;
+        const interestAmount = loan.amount*loan.interest/100;
+        const interestPercentage = ((interestAmount/principal)*100).toFixed(2);
+        totalPrincipal += principal;
+        totalInterest += interestAmount;
+        const originalAmount = principal + interestAmount;
+
+        let tableHTML = `<table>
+        <thead>
+        <tr>
+            <th>Week</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Due Date</th>
+        </tr>
+        </thead>
+        <tbody>`;
+
+        const startDate = new Date(loan.start_date);
+
+        for(let i=1;i<=loan.weeks;i++){
+            const paidRecord = payments.find(p => p.loan_id === loan.id && p.week === i);
+            const dueDate = new Date(startDate);
+            dueDate.setDate(dueDate.getDate() + 7*i);
+            tableHTML += `<tr>
+                <td>${i}</td>
+                <td class="${paidRecord?'paid':'unpaid'}">${paidRecord?'Paid':'Unpaid'}</td>
+                <td>${formatLKR(weeklyInstallment)}</td>
+                <td>${dueDate.toLocaleDateString("si-LK")}</td>
+            </tr>`;
+        }
+
+        tableHTML += "</tbody></table>";
+
+        const paidAmount = payments.filter(p => p.loan_id===loan.id).reduce((sum,p)=>sum+p.amount,0);
+        totalPaidAll += paidAmount;
+        const remaining = originalAmount - paidAmount;
+        totalOutstanding += remaining;
+
+        tableHTML += `<p><strong>Principal Amount:</strong> ${formatLKR(principal)}</p>`;
+        tableHTML += `<p><strong>Interest Amount:</strong> ${formatLKR(interestAmount)} (${interestPercentage}%)</p>`;
+        tableHTML += `<p><strong>Total Paid:</strong> ${formatLKR(paidAmount)}</p>`;
+        tableHTML += `<p><strong>Remaining:</strong> ${formatLKR(remaining)}</p>`;
+
+        loanDiv.innerHTML += tableHTML;
+        container.appendChild(loanDiv);
+    });
+
+    const totalsHTML = `
+    <div class="summary-totals">
+      <div><h3>Total Principal Across Loans</h3><p>${formatLKR(totalPrincipal)}</p></div>
+      <div><h3>Total Interest Across Loans</h3><p>${formatLKR(totalInterest)}</p></div>
+      <div><h3>Total Paid Across Loans</h3><p>${formatLKR(totalPaidAll)}</p></div>
+      <div><h3>Total Outstanding Across Loans</h3><p>${formatLKR(totalOutstanding)}</p></div>
+    </div>`;
+    container.innerHTML += totalsHTML;
+}
+</script>
+</body>
+</html>
