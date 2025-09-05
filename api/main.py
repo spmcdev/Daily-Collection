@@ -94,4 +94,5 @@ def delete_payment(payment_id: int):
     return {"detail": f"Payment {payment_id} deleted"}
 
 # Handler for Vercel
-app = app
+from mangum import Mangum
+handler = Mangum(app)
