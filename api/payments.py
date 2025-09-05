@@ -48,17 +48,37 @@ def handler(event, context):
         elif method == 'POST':
             body = json.loads(event.get('body', '{}'))
             print(f"Request body: {body}")
-            response = supabase.table("payments").insert(body).execute()
-            return {
-                'statusCode': 200,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Headers': '*',
-                    'Access-Control-Allow-Methods': '*'
-                },
-                'body': json.dumps(response.data[0] if response.data else {})
-            }
+
+            # Check if payment already exists for this loan_id and week
+            existing_payment = supabase.table("payments").select("*").eq("loan_id", body['loan_id']).eq("week", body['week']).execute()
+
+            if existing_payment.data and len(existing_payment.data) > 0:
+                print(f"Payment already exists for loan_id {body['loan_id']}, week {body['week']}")
+                # Return the existing payment data
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Headers': '*',
+                        'Access-Control-Allow-Methods': '*'
+                    },
+                    'body': json.dumps(existing_payment.data)
+                }
+            else:
+                # Create new payment
+                print(f"Creating new payment for loan_id {body['loan_id']}, week {body['week']}")
+                response = supabase.table("payments").insert(body).execute()
+                return {
+                    'statusCode': 200,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Headers': '*',
+                        'Access-Control-Allow-Methods': '*'
+                    },
+                    'body': json.dumps(response.data[0] if response.data else {})
+                }
 
         elif method == 'DELETE':
             path = event.get('path', '')
