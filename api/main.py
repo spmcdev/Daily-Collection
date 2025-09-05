@@ -97,6 +97,25 @@ def add_loan(loan: Loan):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/loans/{loan_id}")
+def update_loan(loan_id: int, loan: Loan):
+    if supabase is None:
+        raise HTTPException(status_code=500, detail="Database not configured")
+
+    # Check if loan exists
+    existing = supabase.table("loans").select("*").eq("id", loan_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    # Update loan
+    loan_dict = loan.model_dump()
+    response = supabase.table("loans").update(loan_dict).eq("id", loan_id).execute()
+
+    if response.data:
+        return response.data[0]
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update loan")
+
 @app.delete("/loans/{loan_id}")
 def delete_loan(loan_id: int):
     # Check if loan exists
