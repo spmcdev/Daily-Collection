@@ -57,8 +57,12 @@
 </div>
 
 <div class="section">
-  <h2>Recent Loans</h2>
-  <table id="loans-table">
+   <h2>Recent Loans</h2>
+   <div style="margin-bottom: 15px;">
+       <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Export to CSV</button>
+       <button onclick="exportToJSON()" style="background-color: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Export to JSON</button>
+   </div>
+   <table id="loans-table">
     <thead>
       <tr>
         <th>Borrower ID</th>
@@ -237,6 +241,80 @@ async function deleteLoan(loanId){
     await fetch(`${API_URL}/loans/${loanId}`, { method: "DELETE" });
     loadLoans();
     loadDashboard();
+}
+
+// Export to CSV
+async function exportToCSV(){
+    const loansRes = await fetch(`${API_URL}/api/loans`);
+    const loans = await loansRes.json();
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
+    const payments = await paymentsRes.json();
+
+    let csvContent = "Borrower ID,Borrower,Amount,Interest %,Weeks,Paid Weeks,Remaining Weeks,Total Paid,Remaining Amount,Weekly Installment,Start Date,Completion Status\n";
+
+    loans.forEach(loan => {
+        const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
+        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const remainingWeeks = loan.weeks - paidWeeks;
+        const remainingAmount = (weeklyInstallment * remainingWeeks).toFixed(2);
+        const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
+        const completionStatus = paidWeeks === loan.weeks ? "Completed" : "In Progress";
+
+        csvContent += `${loan.borrower_id},"${loan.borrower}",${loan.amount},${loan.interest}%,${loan.weeks},${paidWeeks},${remainingWeeks},${totalPaid},${remainingAmount},${weeklyInstallment},${loan.start_date},${completionStatus}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `loans_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Export to JSON
+async function exportToJSON(){
+    const loansRes = await fetch(`${API_URL}/api/loans`);
+    const loans = await loansRes.json();
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
+    const payments = await paymentsRes.json();
+
+    const exportData = {
+        export_date: new Date().toISOString(),
+        loans: loans.map(loan => {
+            const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
+            const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+            const remainingWeeks = loan.weeks - paidWeeks;
+            const remainingAmount = (weeklyInstallment * remainingWeeks).toFixed(2);
+            const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
+            const completionStatus = paidWeeks === loan.weeks ? "Completed" : "In Progress";
+
+            return {
+                ...loan,
+                weekly_installment: parseFloat(weeklyInstallment),
+                paid_weeks: paidWeeks,
+                remaining_weeks: remainingWeeks,
+                total_paid: parseFloat(totalPaid),
+                remaining_amount: parseFloat(remainingAmount),
+                completion_status: completionStatus
+            };
+        }),
+        payments: payments,
+        summary: {
+            total_loans: loans.length,
+            total_amount: loans.reduce((sum, loan) => sum + loan.amount, 0),
+            total_received: payments.reduce((sum, payment) => sum + payment.amount, 0),
+            active_loans: loans.filter(loan => payments.filter(p => p.loan_id === loan.id).length < loan.weeks).length
+        }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `loans_export_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
 }
 
 // Call both on load
