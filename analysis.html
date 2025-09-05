@@ -61,7 +61,7 @@ h1 { text-align: center; margin-top: 25px; color: #34495e; }
 </div>
 
 <script>
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "";
 
 function formatLKR(amount){
   return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -69,9 +69,9 @@ function formatLKR(amount){
 
 // Load summary data
 async function loadSummary(){
-  const loansRes = await fetch(`${API_URL}/loans`);
+  const loansRes = await fetch(`${API_URL}/api/loans`);
   const loans = await loansRes.json();
-  const paymentsRes = await fetch(`${API_URL}/payments`);
+  const paymentsRes = await fetch(`${API_URL}/api/payments`);
   const payments = await paymentsRes.json();
 
   let totalLoans = 0;

@@ -65,7 +65,7 @@ button:hover { background-color: #2980b9; }
 </div>
 
 <script>
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "";
 
 // Format currency
 function formatLKR(amount){
@@ -74,9 +74,9 @@ function formatLKR(amount){
 
 // Load borrowers with weekly boxes
 async function loadAllBorrowersHorizontal(){
-    const loansRes = await fetch(`${API_URL}/loans`);
+    const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
-    const paymentsRes = await fetch(`${API_URL}/payments`);
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
     const container = document.getElementById("borrowers-container");
@@ -123,7 +123,7 @@ async function loadAllBorrowersHorizontal(){
 // Mark payment as paid
 async function markPaidBackend(loanId, week, amount){
     const paymentData = { loan_id: loanId, week, amount };
-    const res = await fetch(`${API_URL}/payments`, {
+    const res = await fetch(`${API_URL}/api/payments`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(paymentData)
@@ -138,7 +138,7 @@ async function markPaidBackend(loanId, week, amount){
 
 // Undo payment
 async function undoPayment(paymentId){
-    const res = await fetch(`${API_URL}/payments/${paymentId}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
     if(res.ok){
         loadAllBorrowersHorizontal();
     } else {
@@ -152,9 +152,9 @@ async function checkDueByDate(){
     if(!dateInput) return alert("Please select a date");
     const targetDate = new Date(dateInput);
 
-    const loansRes = await fetch(`${API_URL}/loans`);
+    const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
-    const paymentsRes = await fetch(`${API_URL}/payments`);
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
     const tbody = document.querySelector("#due-table tbody");
