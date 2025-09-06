@@ -179,40 +179,23 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
 }
 
 // Mark payment as paid
-async function markPaidBackend(loanId, week, amount){
-    // Prevent multiple simultaneous requests
-    if(isProcessingPayment){
-        return;
-    }
-
-    isProcessingPayment = true;
-
-    // Optimistically update UI to paid immediately
+function markPaidBackend(loanId, week, amount){
+    // Update UI to paid immediately
     updatePaymentUI(loanId, week, 'paid');
 
-    try {
-        const paymentData = { loan_id: loanId, week, amount };
-        const res = await fetch(`${API_URL}/api/payments`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(paymentData)
-        });
-
-        if(res.ok){
-            // Reload data to show undo button
-            loadAllBorrowersHorizontal();
-        } else {
+    // Send request in background
+    const paymentData = { loan_id: loanId, week, amount };
+    fetch(`${API_URL}/api/payments`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(paymentData)
+    }).then(res => {
+        if(!res.ok){
             alert("Failed to mark payment.");
-            // Revert UI to unpaid
-            updatePaymentUI(loanId, week, 'unpaid');
         }
-    } catch(error) {
+    }).catch(error => {
         alert("Network error occurred.");
-        // Revert UI to unpaid
-        updatePaymentUI(loanId, week, 'unpaid');
-    } finally {
-        isProcessingPayment = false;
-    }
+    });
 }
 
 // Undo payment
