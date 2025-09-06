@@ -58,8 +58,13 @@
 
 <div class="section">
    <h2>Recent Loans</h2>
-   <div style="margin-bottom: 15px;">
-       <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-right: 10px;">Export to CSV</button>
+   <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+       <div>
+           <input type="text" id="search-input" placeholder="Search by Borrower ID or Name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; width: 250px; font-size: 14px;">
+       </div>
+       <div>
+           <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Export to CSV</button>
+       </div>
    </div>
    <table id="loans-table">
     <thead>
@@ -160,6 +165,9 @@ async function loadLoans(){
                         </td>`;
         tbody.appendChild(tr);
     });
+
+    // Initialize search functionality
+    initializeSearch();
 }
 
 // Edit Loan
@@ -289,6 +297,26 @@ async function exportToCSV(){
     window.URL.revokeObjectURL(url);
 }
 
+
+// Initialize Search Functionality
+function initializeSearch(){
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const tableRows = document.querySelectorAll('#loans-table tbody tr');
+
+        tableRows.forEach(row => {
+            const borrowerId = row.cells[0].textContent.toLowerCase();
+            const borrowerName = row.cells[1].textContent.toLowerCase();
+
+            if (borrowerId.includes(searchTerm) || borrowerName.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+}
 
 // Call both on load
 window.onload = function(){
