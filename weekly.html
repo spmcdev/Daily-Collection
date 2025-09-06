@@ -229,43 +229,46 @@ async function undoPayment(paymentId){
 
     isProcessingUndo = true;
 
-    // Find the undo button and disable it
-    const undoButtons = document.querySelectorAll('button[onclick*="undoPayment"]');
-    let clickedButton = null;
-    undoButtons.forEach(btn => {
-        if(btn.onclick.toString().includes(paymentId) && !btn.disabled){
-            clickedButton = btn;
-        }
+    // Find the loan and week for this payment to update UI
+    const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
+    let loanId = null;
+    let week = null;
+    borrowerContainers.forEach(container => {
+        const weekBoxes = container.querySelectorAll('.week-box');
+        weekBoxes.forEach((box, index) => {
+            const button = box.querySelector('button[onclick*="undoPayment"]');
+            if(button && button.onclick.toString().includes(paymentId)){
+                const header = container.querySelector('div');
+                const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+                if(loanIdMatch){
+                    loanId = parseInt(loanIdMatch[1]);
+                    week = index + 1;
+                }
+            }
+        });
     });
 
-    if(clickedButton){
-        clickedButton.disabled = true;
-        clickedButton.innerHTML = '<span class="loading"></span>Processing...';
-        clickedButton.style.backgroundColor = '#95a5a6';
+    // Optimistically update UI to unpaid
+    if(loanId && week){
+        updatePaymentUI(loanId, week, 'unpaid');
     }
 
     try {
         const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
         if(res.ok){
-            // For undo, we need to reload to get updated payment data
-            // This ensures the UI reflects the current database state
-            loadAllBorrowersHorizontal();
+            // UI already updated optimistically
         } else {
             alert("Failed to undo payment.");
-            // Re-enable the button if failed
-            if(clickedButton){
-                clickedButton.disabled = false;
-                clickedButton.innerHTML = 'Undo';
-                clickedButton.style.backgroundColor = '#e74c3c';
+            // Revert UI to paid
+            if(loanId && week){
+                updatePaymentUI(loanId, week, 'paid', paymentId);
             }
         }
     } catch(error) {
         alert("Network error occurred.");
-        // Re-enable the button if error
-        if(clickedButton){
-            clickedButton.disabled = false;
-            clickedButton.innerHTML = 'Undo';
-            clickedButton.style.backgroundColor = '#e74c3c';
+        // Revert UI to paid
+        if(loanId && week){
+            updatePaymentUI(loanId, week, 'paid', paymentId);
         }
     } finally {
         isProcessingUndo = false;
