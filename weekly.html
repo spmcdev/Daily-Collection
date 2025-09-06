@@ -162,8 +162,8 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.className = 'week-box paid';
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
-                        // Add checkmark and undo button for paid
-                        box.innerHTML += `<br>✓<br><button onclick="undoForLoanWeek(${loanId}, ${week})">Undo</button>`;
+                        // Remove any existing button, then add checkmark and undo button for paid
+                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '') + `<br>✓<br><button onclick="undoForLoanWeek(${loanId}, ${week})">Undo</button>`;
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
                         box.innerHTML = box.innerHTML.replace(/<br>✓<br><button.*?<\/button>/, '');
