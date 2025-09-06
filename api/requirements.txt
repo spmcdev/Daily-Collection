@@ -1,1 +1,1 @@
-# No dependencies for test
+requests==2.31.0
