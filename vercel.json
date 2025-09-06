@@ -3,11 +3,11 @@
   "routes": [
     {
       "src": "/api/loans",
-      "dest": "/api/loans.py"
+      "dest": "/api/loans.js"
     },
     {
       "src": "/api/loans/(.*)",
-      "dest": "/api/loans.py"
+      "dest": "/api/loans.js"
     },
     {
       "src": "/api/payments/?(.*)",
