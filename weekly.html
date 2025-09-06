@@ -179,27 +179,28 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
 }
 
 // Mark payment as paid
-function markPaidBackend(loanId, week, amount){
+async function markPaidBackend(loanId, week, amount){
     // Update UI to paid immediately
     updatePaymentUI(loanId, week, 'paid');
 
-    // Send request in background
-    const paymentData = { loan_id: loanId, week, amount };
-    fetch(`${API_URL}/api/payments`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(paymentData)
-    }).then(res => {
+    try {
+        const paymentData = { loan_id: loanId, week, amount };
+        const res = await fetch(`${API_URL}/api/payments`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(paymentData)
+        });
+
         if(!res.ok){
             alert("Failed to mark payment.");
             // Revert UI to unpaid
             updatePaymentUI(loanId, week, 'unpaid');
         }
-    }).catch(error => {
+    } catch(error) {
         alert("Network error occurred.");
         // Revert UI to unpaid
         updatePaymentUI(loanId, week, 'unpaid');
-    });
+    }
 }
 
 // Undo payment
