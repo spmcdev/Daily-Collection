@@ -127,7 +127,7 @@ async function loadAllBorrowersHorizontal(){
             if(!paidRecord){
                 weekDiv.onclick = () => markPaidBackend(loan.id, i, weeklyInstallment);
             } else {
-                weekDiv.innerHTML += `<br>✓`;
+                weekDiv.innerHTML += `<br><button onclick="undoForLoanWeek(${loan.id}, ${i})">Undo</button>`;
             }
 
             weeksDiv.appendChild(weekDiv);
@@ -162,11 +162,11 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.className = 'week-box paid';
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
-                        // Add checkmark for paid
-                        box.innerHTML += `<br>✓`;
+                        // Add checkmark and undo button for paid
+                        box.innerHTML += `<br>✓<br><button onclick="undoForLoanWeek(${loanId}, ${week})">Undo</button>`;
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
-                        box.innerHTML = box.innerHTML.replace(/<br>✓/, '');
+                        box.innerHTML = box.innerHTML.replace(/<br>✓<br><button.*?<\/button>/, '');
                         box.style.pointerEvents = 'auto';
                         // Re-enable click
                         const amount = box.innerHTML.split('<br>')[1].split('LKR ')[1];
@@ -241,6 +241,39 @@ async function undoPayment(paymentId){
         if(loanId && week){
             updatePaymentUI(loanId, week, 'paid', paymentId);
         }
+    }
+}
+
+// Undo payment by loan and week
+async function undoForLoanWeek(loanId, week){
+    // Update UI to unpaid
+    updatePaymentUI(loanId, week, 'unpaid');
+
+    try {
+        // Fetch payments for this loan
+        const paymentsRes = await fetch(`${API_URL}/api/payments?loan_id=${loanId}`);
+        const payments = await paymentsRes.json();
+
+        // Find the payment for this week
+        const payment = payments.find(p => p.week === week);
+
+        if(payment){
+            // Send delete request
+            const res = await fetch(`${API_URL}/api/payments/${payment.id}`, { method: "DELETE" });
+            if(!res.ok){
+                alert("Failed to undo payment.");
+                // Revert UI to paid
+                updatePaymentUI(loanId, week, 'paid', payment.id);
+            }
+        } else {
+            alert("Payment not found.");
+            // Revert UI to paid
+            updatePaymentUI(loanId, week, 'paid');
+        }
+    } catch(error) {
+        alert("Network error occurred.");
+        // Revert UI to paid
+        updatePaymentUI(loanId, week, 'paid');
     }
 }
 
