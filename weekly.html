@@ -271,9 +271,8 @@ async function undoForLoanWeek(loanId, week){
                 updatePaymentUI(loanId, week, 'paid', payment.id);
             }
         } else {
-            alert("Payment not found.");
-            // Revert UI to paid
-            updatePaymentUI(loanId, week, 'paid');
+            // Payment not found, reload data to get latest
+            loadAllBorrowersHorizontal();
         }
     } catch(error) {
         alert("Network error occurred.");
