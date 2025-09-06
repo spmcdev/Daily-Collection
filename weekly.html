@@ -192,9 +192,13 @@ function markPaidBackend(loanId, week, amount){
     }).then(res => {
         if(!res.ok){
             alert("Failed to mark payment.");
+            // Revert UI to unpaid
+            updatePaymentUI(loanId, week, 'unpaid');
         }
     }).catch(error => {
         alert("Network error occurred.");
+        // Revert UI to unpaid
+        updatePaymentUI(loanId, week, 'unpaid');
     });
 }
 
