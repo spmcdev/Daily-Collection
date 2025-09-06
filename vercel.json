@@ -1,5 +1,13 @@
 {
   "version": 2,
+  "functions": {
+    "api/loans.py": {
+      "runtime": "python3.9"
+    },
+    "api/payments.py": {
+      "runtime": "python3.9"
+    }
+  },
   "routes": [
     {
       "src": "/api/loans",
