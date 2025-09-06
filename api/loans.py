@@ -1,13 +1,15 @@
 import json
 import os
-from supabase import create_client
-
-# Supabase configuration
-SUPABASE_URL = "https://extzvxpizdxqzlvebioo.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4dHp2eHBpemR4cXpsdmViaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNzk4MzUsImV4cCI6MjA3MjY1NTgzNX0.TXUQOCEtQH6su0Ojonu_9sAOJAo-67_zZk90f_BZlU8"
 
 def handler(event, context):
     try:
+        # Lazy import to avoid Vercel conflicts
+        from supabase import create_client
+
+        # Supabase configuration
+        SUPABASE_URL = "https://extzvxpizdxqzlvebioo.supabase.co"
+        SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4dHp2eHBpemR4cXpsdmViaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNzk4MzUsImV4cCI6MjA3MjY1NTgzNX0.TXUQOCEtQH6su0Ojonu_9sAOJAo-67_zZk90f_BZlU8"
+
         # Create Supabase client
         supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
