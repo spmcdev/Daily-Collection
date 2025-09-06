@@ -217,18 +217,8 @@ async function markPaidBackend(loanId, week, amount){
     }
 }
 
-// Global flag to prevent multiple simultaneous undos
-let isProcessingUndo = false;
-
 // Undo payment
 async function undoPayment(paymentId){
-    // Prevent multiple simultaneous requests
-    if(isProcessingUndo){
-        return;
-    }
-
-    isProcessingUndo = true;
-
     // Find the loan and week for this payment to update UI
     const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
     let loanId = null;
@@ -270,8 +260,6 @@ async function undoPayment(paymentId){
         if(loanId && week){
             updatePaymentUI(loanId, week, 'paid', paymentId);
         }
-    } finally {
-        isProcessingUndo = false;
     }
 }
 
