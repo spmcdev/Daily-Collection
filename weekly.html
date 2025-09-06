@@ -83,7 +83,9 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 </div>
 
 <div id="edit-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000; max-height:80%; overflow:auto;">
-  <h3>Edit Payments</h3>
+  <div id="popup-header" style="cursor: move; background: #f0f0f0; padding: 5px; margin: -20px -20px 10px -20px; border-bottom: 1px solid #ccc;">
+    <h3 style="margin: 0;">Edit Payments</h3>
+  </div>
   <div id="edit-content"></div>
   <button onclick="closeEdit()">Close</button>
 </div>
@@ -289,11 +291,46 @@ async function toggleEdit(loanId){
     }
 
     document.getElementById('edit-popup').style.display = 'block';
+    // Reset position to center
+    const popup = document.getElementById('edit-popup');
+    popup.style.left = '50%';
+    popup.style.top = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
 }
 
 // Close edit popup
 function closeEdit(){
     document.getElementById('edit-popup').style.display = 'none';
+}
+
+// Dragging functionality
+let isDragging = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+document.getElementById('popup-header').addEventListener('mousedown', function(e) {
+    e.preventDefault(); // Prevent text selection during drag
+    isDragging = true;
+    const popup = document.getElementById('edit-popup');
+    const rect = popup.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+});
+
+function drag(e) {
+    if (!isDragging) return;
+    const popup = document.getElementById('edit-popup');
+    popup.style.left = (e.clientX - dragOffsetX) + 'px';
+    popup.style.top = (e.clientY - dragOffsetY) + 'px';
+    popup.style.transform = 'none'; // Remove the center transform
+}
+
+function stopDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
 }
 
 // Undo payment by loan and week
