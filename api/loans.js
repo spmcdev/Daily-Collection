@@ -26,6 +26,23 @@ export default async function handler(req, res) {
 
       res.status(200).json(data[0])
 
+    } else if (req.method === 'PUT') {
+      const loanId = req.query.id || req.url.split('/').pop()
+
+      if (loanId) {
+        const { data, error } = await supabase
+          .from('loans')
+          .update(req.body)
+          .eq('id', parseInt(loanId))
+          .select()
+
+        if (error) throw error
+
+        res.status(200).json(data[0])
+      } else {
+        res.status(400).json({ error: 'Loan ID required' })
+      }
+
     } else if (req.method === 'DELETE') {
       const loanId = req.query.id || req.url.split('/').pop()
 
