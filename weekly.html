@@ -256,7 +256,7 @@ async function undoForLoanWeek(loanId, week){
 
     try {
         // Fetch all payments
-        const paymentsRes = await fetch(`${API_URL}/api/payments`, { cache: 'no-cache' });
+        const paymentsRes = await fetch(`${API_URL}/api/payments?t=${Date.now()}`, { cache: 'no-cache' });
         const payments = await paymentsRes.json();
 
         // Find the payment for this loan and week
