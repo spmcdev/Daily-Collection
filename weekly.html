@@ -106,7 +106,7 @@ async function loadAllBorrowersHorizontal(){
         borrowerDiv.style.marginBottom = "25px";
 
         const header = document.createElement("div");
-        header.innerHTML = `<strong>Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'}</strong>`;
+        header.innerHTML = `<strong>Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'}</strong> <button onclick="toggleEdit(${loan.id})">Edit</button>`;
         header.style.marginBottom = "5px";
         borrowerDiv.appendChild(header);
 
@@ -127,7 +127,7 @@ async function loadAllBorrowersHorizontal(){
             if(!paidRecord){
                 weekDiv.onclick = () => markPaidBackend(loan.id, i, weeklyInstallment);
             } else {
-                weekDiv.innerHTML += `<br><button onclick="undoPayment(${paidRecord.id})">Undo</button>`;
+                weekDiv.innerHTML += `<br><button class="undo-btn" style="display:none" onclick="undoPayment(${paidRecord.id})">Undo</button>`;
             }
 
             weeksDiv.appendChild(weekDiv);
@@ -163,7 +163,7 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
                         // Remove any existing button, then add undo button for paid
-                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '') + `<br><button onclick="undoPlaceholder(${loanId}, ${week})">Undo</button>`;
+                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '') + `<br><button class="undo-btn" style="display:none" onclick="undoPlaceholder(${loanId}, ${week})">Undo</button>`;
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
                         box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '');
@@ -252,6 +252,21 @@ async function undoPayment(paymentId){
 // Placeholder for undo
 function undoPlaceholder(loanId, week){
     // Do nothing, will be updated with real onclick
+}
+
+// Toggle edit mode for a loan
+function toggleEdit(loanId){
+    const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
+    borrowerContainers.forEach(container => {
+        const header = container.querySelector('div');
+        const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+        if (loanIdMatch && parseInt(loanIdMatch[1]) === loanId) {
+            const undoBtns = container.querySelectorAll('.undo-btn');
+            undoBtns.forEach(btn => {
+                btn.style.display = btn.style.display === 'none' ? 'inline-block' : 'none';
+            });
+        }
+    });
 }
 
 // Undo payment by loan and week
