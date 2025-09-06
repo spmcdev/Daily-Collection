@@ -237,7 +237,6 @@ async function undoPayment(paymentId){
         const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
         if(res.ok){
             loadAllBorrowersHorizontal();
-            closeEdit();
         } else {
             alert("Failed to undo payment.");
             // Revert UI to paid
