@@ -250,12 +250,12 @@ async function undoForLoanWeek(loanId, week){
     updatePaymentUI(loanId, week, 'unpaid');
 
     try {
-        // Fetch payments for this loan
-        const paymentsRes = await fetch(`${API_URL}/api/payments?loan_id=${loanId}`);
+        // Fetch all payments
+        const paymentsRes = await fetch(`${API_URL}/api/payments`);
         const payments = await paymentsRes.json();
 
-        // Find the payment for this week
-        const payment = payments.find(p => p.week === week);
+        // Find the payment for this loan and week
+        const payment = payments.find(p => p.loan_id === loanId && p.week === week);
 
         if(payment){
             // Send delete request
