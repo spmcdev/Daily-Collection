@@ -162,8 +162,10 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.className = 'week-box paid';
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
-                        // Add undo button
-                        box.innerHTML += `<br><button onclick="undoForLoanWeek(${loanId}, ${week})">Undo</button>`;
+                        // Add undo button if we have payment ID
+                        if (paymentId) {
+                            box.innerHTML += `<br><button onclick="undoPayment(${paymentId})">Undo</button>`;
+                        }
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
                         box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '');
@@ -199,9 +201,8 @@ async function markPaidBackend(loanId, week, amount){
         });
 
         if(res.ok){
-            const payment = await res.json();
-            // Update UI with payment ID for undo
-            updatePaymentUI(loanId, week, 'paid', payment.id);
+            // Reload data to show undo button
+            loadAllBorrowersHorizontal();
         } else {
             alert("Failed to mark payment.");
             // Revert UI to unpaid
@@ -262,38 +263,6 @@ async function undoPayment(paymentId){
     }
 }
 
-// Undo payment by loan and week
-async function undoForLoanWeek(loanId, week){
-    // Update UI to unpaid
-    updatePaymentUI(loanId, week, 'unpaid');
-
-    try {
-        // Fetch payments for this loan
-        const paymentsRes = await fetch(`${API_URL}/api/payments?loan_id=${loanId}`);
-        const payments = await paymentsRes.json();
-
-        // Find the payment for this week
-        const payment = payments.find(p => p.week === week);
-
-        if(payment){
-            // Send delete request
-            const res = await fetch(`${API_URL}/api/payments/${payment.id}`, { method: "DELETE" });
-            if(!res.ok){
-                alert("Failed to undo payment.");
-                // Revert UI to paid
-                updatePaymentUI(loanId, week, 'paid', payment.id);
-            }
-        } else {
-            alert("Payment not found.");
-            // Revert UI to paid
-            updatePaymentUI(loanId, week, 'paid');
-        }
-    } catch(error) {
-        alert("Network error occurred.");
-        // Revert UI to paid
-        updatePaymentUI(loanId, week, 'paid');
-    }
-}
 
 // Check due installments by selected date and show total
 async function checkDueByDate(){
