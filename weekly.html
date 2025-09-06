@@ -127,7 +127,7 @@ async function loadAllBorrowersHorizontal(){
             if(!paidRecord){
                 weekDiv.onclick = () => markPaidBackend(loan.id, i, weeklyInstallment);
             } else {
-                weekDiv.innerHTML += `<br><button onclick="undoPayment(${paidRecord.id})">Undo</button>`;
+                weekDiv.innerHTML += `<br>✓`;
             }
 
             weeksDiv.appendChild(weekDiv);
@@ -162,13 +162,11 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.className = 'week-box paid';
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
-                        // Add undo button if we have payment ID
-                        if (paymentId) {
-                            box.innerHTML += `<br><button onclick="undoPayment(${paymentId})">Undo</button>`;
-                        }
+                        // Add checkmark for paid
+                        box.innerHTML += `<br>✓`;
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
-                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '');
+                        box.innerHTML = box.innerHTML.replace(/<br>✓/, '');
                         box.style.pointerEvents = 'auto';
                         // Re-enable click
                         const amount = box.innerHTML.split('<br>')[1].split('LKR ')[1];
