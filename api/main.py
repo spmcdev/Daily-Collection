@@ -122,10 +122,10 @@ def delete_loan(loan_id: int):
     response = supabase.table("loans").select("*").eq("id", loan_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="Loan not found")
-    # Delete loan
-    supabase.table("loans").delete().eq("id", loan_id).execute()
-    # Delete related payments
+    # Delete related payments first
     supabase.table("payments").delete().eq("loan_id", loan_id).execute()
+    # Then delete loan
+    supabase.table("loans").delete().eq("id", loan_id).execute()
     return {"detail": f"Loan {loan_id} deleted"}
 
 # -------------------------
