@@ -139,6 +139,9 @@ async function loadAllBorrowersHorizontal(){
 }
 
 
+// Global flag to prevent multiple simultaneous payments
+let isProcessingPayment = false;
+
 // Update payment UI locally without reloading all data
 function updatePaymentUI(loanId, week, status, paymentId = null) {
     // Find all borrower containers
