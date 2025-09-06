@@ -142,7 +142,7 @@ async function loadAllBorrowersHorizontal(){
 let isProcessingPayment = false;
 
 // Update payment UI locally without reloading all data
-function updatePaymentUI(loanId, week, status) {
+function updatePaymentUI(loanId, week, status, paymentId = null) {
     // Find all borrower containers
     const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
 
@@ -160,9 +160,11 @@ function updatePaymentUI(loanId, week, status) {
                     if (status === 'paid') {
                         box.className = 'week-box paid';
                         box.onclick = null;
-                        // Add undo button - we'll need to get the payment ID from the response
-                        // For now, just mark as paid
                         box.style.pointerEvents = 'none';
+                        // Add undo button if we have payment ID
+                        if (paymentId) {
+                            box.innerHTML += `<br><button onclick="undoPayment(${paymentId})">Undo</button>`;
+                        }
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
                         box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '');
@@ -186,20 +188,8 @@ async function markPaidBackend(loanId, week, amount){
 
     isProcessingPayment = true;
 
-    // Find the clicked week box and disable it
-    const weekBoxes = document.querySelectorAll('.week-box');
-    let clickedBox = null;
-    weekBoxes.forEach(box => {
-        if(box.onclick && !box.innerHTML.includes('Processing') && !box.innerHTML.includes('Paid') && box.innerHTML.includes(week)){
-            clickedBox = box;
-        }
-    });
-
-    if(clickedBox){
-        clickedBox.style.pointerEvents = 'none';
-        clickedBox.style.opacity = '0.6';
-        clickedBox.innerHTML = '<span class="loading"></span>Processing...';
-    }
+    // Optimistically update UI to paid immediately
+    updatePaymentUI(loanId, week, 'paid');
 
     try {
         const paymentData = { loan_id: loanId, week, amount };
@@ -210,34 +200,18 @@ async function markPaidBackend(loanId, week, amount){
         });
 
         if(res.ok){
-            await res.json();
-            // Update UI locally instead of reloading everything
-            updatePaymentUI(loanId, week, 'paid');
+            const payment = await res.json();
+            // Update UI with payment ID for undo
+            updatePaymentUI(loanId, week, 'paid', payment.id);
         } else {
             alert("Failed to mark payment.");
-            // Re-enable the box if failed
-            if(clickedBox){
-                clickedBox.style.pointerEvents = 'auto';
-                clickedBox.style.opacity = '1';
-                // Restore original content
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + 7 * week);
-                clickedBox.innerHTML = `${dueDate.toLocaleDateString("si-LK")}<br>${formatLKR(amount)}`;
-                clickedBox.onclick = () => markPaidBackend(loanId, week, amount);
-            }
+            // Revert UI to unpaid
+            updatePaymentUI(loanId, week, 'unpaid');
         }
     } catch(error) {
         alert("Network error occurred.");
-        // Re-enable the box if error
-        if(clickedBox){
-            clickedBox.style.pointerEvents = 'auto';
-            clickedBox.style.opacity = '1';
-            // Restore original content
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 7 * week);
-            clickedBox.innerHTML = `${dueDate.toLocaleDateString("si-LK")}<br>${formatLKR(amount)}`;
-            clickedBox.onclick = () => markPaidBackend(loanId, week, amount);
-        }
+        // Revert UI to unpaid
+        updatePaymentUI(loanId, week, 'unpaid');
     } finally {
         isProcessingPayment = false;
     }
