@@ -1,6 +1,2 @@
-fastapi
-uvicorn
-sqlmodel
+supabase==2.3.0
 python-dotenv
-supabase
-mangum
