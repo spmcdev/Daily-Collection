@@ -1,6 +1,6 @@
 {
   "name": "loan-app",
-  "version": "3.5.0",
+  "version": "4.0.0",
   "main": "index.js",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
