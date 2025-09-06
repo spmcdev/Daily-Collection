@@ -63,7 +63,20 @@ export default async function handler(req, res) {
 
         res.status(200).json({ message: 'Loan and all payments deleted successfully' })
       } else {
-        res.status(400).json({ error: 'Loan ID required' })
+        // Delete all loans and payments if no specific ID
+        await supabase
+          .from('payments')
+          .delete()
+          .neq('id', 0) // Delete all payments
+
+        const { error } = await supabase
+          .from('loans')
+          .delete()
+          .neq('id', 0) // Delete all loans
+
+        if (error) throw error
+
+        res.status(200).json({ message: 'All loans and payments deleted successfully' })
       }
 
     } else {
