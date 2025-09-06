@@ -25,9 +25,16 @@ def handler(event, context):
 
     # Import and create client inside handler
     try:
+        print("Attempting to import supabase...")
         from supabase import create_client
+        print("Supabase imported successfully")
+        print(f"Creating client with URL: {SUPABASE_URL[:30]}...")
         supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        print("Supabase client created successfully")
     except Exception as e:
+        print(f"Error creating Supabase client: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
