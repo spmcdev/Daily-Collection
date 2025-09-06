@@ -82,6 +82,12 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
   </table>
 </div>
 
+<div id="edit-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000; max-height:80%; overflow:auto;">
+  <h3>Edit Payments</h3>
+  <div id="edit-content"></div>
+  <button onclick="closeEdit()">Close</button>
+</div>
+
 <script>
 const API_URL = "";
 
@@ -230,7 +236,8 @@ async function undoPayment(paymentId){
     try {
         const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
         if(res.ok){
-            // UI already updated optimistically
+            loadAllBorrowersHorizontal();
+            closeEdit();
         } else {
             alert("Failed to undo payment.");
             // Revert UI to paid
@@ -253,18 +260,34 @@ function undoPlaceholder(loanId, week){
 }
 
 // Toggle edit mode for a loan
-function toggleEdit(loanId){
-    const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
-    borrowerContainers.forEach(container => {
-        const header = container.querySelector('div');
-        const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
-        if (loanIdMatch && parseInt(loanIdMatch[1]) === loanId) {
-            const undoBtns = container.querySelectorAll('.undo-btn');
-            undoBtns.forEach(btn => {
-                btn.style.display = btn.style.display === 'none' ? 'inline-block' : 'none';
-            });
-        }
-    });
+async function toggleEdit(loanId){
+    const editContent = document.getElementById('edit-content');
+    editContent.innerHTML = '<p>Loading...</p>';
+
+    // Fetch payments for this loan
+    const paymentsRes = await fetch(`${API_URL}/api/payments?t=${Date.now()}`);
+    const payments = await paymentsRes.json();
+
+    // Find paid payments for this loan
+    const paidPayments = payments.filter(p => p.loan_id === loanId);
+
+    if(paidPayments.length === 0){
+        editContent.innerHTML = '<p>No paid payments to edit.</p>';
+    } else {
+        let tableHTML = '<table><thead><tr><th>Week</th><th>Amount</th><th>Action</th></tr></thead><tbody>';
+        paidPayments.forEach(payment => {
+            tableHTML += `<tr><td>${payment.week}</td><td>${formatLKR(payment.amount)}</td><td><button onclick="undoPayment(${payment.id})">Undo</button></td></tr>`;
+        });
+        tableHTML += '</tbody></table>';
+        editContent.innerHTML = tableHTML;
+    }
+
+    document.getElementById('edit-popup').style.display = 'block';
+}
+
+// Close edit popup
+function closeEdit(){
+    document.getElementById('edit-popup').style.display = 'none';
 }
 
 // Undo payment by loan and week
