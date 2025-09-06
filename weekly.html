@@ -238,11 +238,14 @@ async function undoPayment(paymentId, button = null){
         if(res.ok){
             loadAllBorrowersHorizontal();
             if(button){
-                button.disabled = true;
                 button.innerHTML = 'Undone';
             }
         } else {
             alert("Failed to undo payment.");
+            if(button){
+                button.disabled = false;
+                button.innerHTML = 'Undo';
+            }
             // Revert UI to paid
             if(loanId && week){
                 updatePaymentUI(loanId, week, 'paid', paymentId);
@@ -279,7 +282,7 @@ async function toggleEdit(loanId){
     } else {
         let tableHTML = '<table><thead><tr><th>Week</th><th>Amount</th><th>Action</th></tr></thead><tbody>';
         paidPayments.forEach(payment => {
-            tableHTML += `<tr><td>${payment.week}</td><td>${formatLKR(payment.amount)}</td><td><button onclick="undoPayment(${payment.id}, this)">Undo</button></td></tr>`;
+            tableHTML += `<tr><td>${payment.week}</td><td>${formatLKR(payment.amount)}</td><td><button onclick="this.disabled=true; this.innerHTML='Undoing...'; undoPayment(${payment.id}, this)">Undo</button></td></tr>`;
         });
         tableHTML += '</tbody></table>';
         editContent.innerHTML = tableHTML;
