@@ -16,6 +16,12 @@ h1 { text-align: center; margin-top: 25px; color: #34495e; }
 .summary-boxes { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
 .summary-box { flex: 1 1 200px; padding: 20px; border-radius: 10px; color: white; text-align: center; font-weight: bold; background: linear-gradient(135deg, #3498db, #2980b9); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 .summary-box p { font-size: 1.3em; margin: 10px 0 0 0; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #ddd; }
+th { background-color: #3498db; color: white; }
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -58,6 +64,75 @@ h1 { text-align: center; margin-top: 25px; color: #34495e; }
 <div class="section chart-container">
   <h2>Paid vs Unpaid Installments</h2>
   <canvas id="paidUnpaidChart"></canvas>
+</div>
+
+<div class="section">
+  <h2>Top Borrowers - Amount Taken & Remaining</h2>
+  <table id="topBorrowersTable">
+    <thead>
+      <tr>
+        <th>Borrower ID</th>
+        <th>Borrower Name</th>
+        <th>Amount Taken</th>
+        <th>Amount Remaining</th>
+        <th>Completion %</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Overdue Payments (Not Completed on Time)</h2>
+  <div style="margin-bottom: 15px;">
+    <label for="overdue-date">Check Overdue as of Date:</label>
+    <input type="date" id="overdue-date" style="margin-left: 10px; padding: 5px;">
+    <button onclick="checkOverdue()" style="margin-left: 10px; padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 3px;">Check</button>
+  </div>
+  <table id="overdueTable">
+    <thead>
+      <tr>
+        <th>Borrower ID</th>
+        <th>Borrower Name</th>
+        <th>Due Date</th>
+        <th>Days Overdue</th>
+        <th>Outstanding Amount</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Detailed Paid vs Unpaid Installments</h2>
+  <div class="summary-boxes" style="margin-bottom: 20px;">
+    <div class="summary-box" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+      Total Paid Installments
+      <p id="total-paid-installments">0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+      Total Unpaid Installments
+      <p id="total-unpaid-installments">0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+      Overall Completion Rate
+      <p id="completion-rate">0%</p>
+    </div>
+  </div>
+  <table id="installmentsTable">
+    <thead>
+      <tr>
+        <th>Borrower ID</th>
+        <th>Borrower Name</th>
+        <th>Total Weeks</th>
+        <th>Paid Weeks</th>
+        <th>Unpaid Weeks</th>
+        <th>Completion %</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <script>
@@ -154,6 +229,128 @@ async function initAnalysis(){
   renderTopBorrowers(loans);
   renderWeeklyTrend(loans, payments);
   renderPaidUnpaid(loans, payments);
+  renderTopBorrowersTable(loans, payments);
+  renderInstallmentsTable(loans, payments);
+
+  // Set default date for overdue check
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('overdue-date').value = today;
+}
+
+// Render Top Borrowers Table
+function renderTopBorrowersTable(loans, payments) {
+  const tbody = document.querySelector('#topBorrowersTable tbody');
+  tbody.innerHTML = '';
+
+  const sortedLoans = loans
+    .map(loan => {
+      const totalAmount = loan.amount * (1 + loan.interest/100);
+      const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+      const remainingAmount = totalAmount - (paidWeeks * (totalAmount / loan.weeks));
+      const completionPercent = ((paidWeeks / loan.weeks) * 100).toFixed(1);
+
+      return {
+        ...loan,
+        totalAmount,
+        remainingAmount,
+        completionPercent,
+        paidWeeks
+      };
+    })
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .slice(0, 10);
+
+  sortedLoans.forEach(loan => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${loan.borrower_id}</td>
+      <td>${loan.borrower}</td>
+      <td>${formatLKR(loan.totalAmount)}</td>
+      <td>${formatLKR(loan.remainingAmount)}</td>
+      <td>${loan.completionPercent}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Render Detailed Installments Table
+function renderInstallmentsTable(loans, payments) {
+  const tbody = document.querySelector('#installmentsTable tbody');
+  tbody.innerHTML = '';
+
+  let totalPaid = 0;
+  let totalUnpaid = 0;
+
+  loans.forEach(loan => {
+    const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+    const unpaidWeeks = loan.weeks - paidWeeks;
+    const completionPercent = ((paidWeeks / loan.weeks) * 100).toFixed(1);
+
+    totalPaid += paidWeeks;
+    totalUnpaid += unpaidWeeks;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${loan.borrower_id}</td>
+      <td>${loan.borrower}</td>
+      <td>${loan.weeks}</td>
+      <td>${paidWeeks}</td>
+      <td>${unpaidWeeks}</td>
+      <td>${completionPercent}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Update summary boxes
+  const completionRate = totalPaid + totalUnpaid > 0 ? ((totalPaid / (totalPaid + totalUnpaid)) * 100).toFixed(1) : 0;
+  document.getElementById('total-paid-installments').textContent = totalPaid;
+  document.getElementById('total-unpaid-installments').textContent = totalUnpaid;
+  document.getElementById('completion-rate').textContent = completionRate + '%';
+}
+
+// Check Overdue Payments
+async function checkOverdue() {
+  const checkDate = new Date(document.getElementById('overdue-date').value);
+  const loansRes = await fetch(`${API_URL}/api/loans`);
+  const loans = await loansRes.json();
+  const paymentsRes = await fetch(`${API_URL}/api/payments`);
+  const payments = await paymentsRes.json();
+
+  const tbody = document.querySelector('#overdueTable tbody');
+  tbody.innerHTML = '';
+
+  loans.forEach(loan => {
+    const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+
+    // Check each unpaid week if it's overdue
+    for (let week = paidWeeks + 1; week <= loan.weeks; week++) {
+      const dueDate = new Date(loan.start_date);
+      dueDate.setDate(dueDate.getDate() + 7 * week);
+
+      if (dueDate < checkDate) {
+        const daysOverdue = Math.floor((checkDate - dueDate) / (1000 * 60 * 60 * 24));
+        const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks);
+        const outstandingAmount = weeklyAmount * (loan.weeks - paidWeeks);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${loan.borrower_id}</td>
+          <td>${loan.borrower}</td>
+          <td>${dueDate.toLocaleDateString('en-US')}</td>
+          <td>${daysOverdue}</td>
+          <td>${formatLKR(outstandingAmount)}</td>
+          <td style="color: #e74c3c; font-weight: bold;">OVERDUE</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+  });
+
+  if (tbody.children.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="6" style="text-align: center; color: #27ae60; font-weight: bold;">No overdue payments found!</td>';
+    tbody.appendChild(tr);
+  }
 }
 
 window.onload = initAnalysis;
