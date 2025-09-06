@@ -10,8 +10,12 @@
       "dest": "/api/loans.js"
     },
     {
-      "src": "/api/payments/?(.*)",
-      "dest": "/api/payments.py"
+      "src": "/api/payments",
+      "dest": "/api/payments.js"
+    },
+    {
+      "src": "/api/payments/(.*)",
+      "dest": "/api/payments.js"
     },
     {
       "src": "/(.*)",
