@@ -6,6 +6,12 @@ def handler(event, context):
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
+    # Temporary fallback for testing - REMOVE IN PRODUCTION
+    if not SUPABASE_URL:
+        SUPABASE_URL = "https://extzvxpizdxqzlvebioo.supabase.co"
+    if not SUPABASE_ANON_KEY:
+        SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4dHp2eHBpemR4cXpsdmViaW9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNzk4MzUsImV4cCI6MjA3MjY1NTgzNX0.TXUQOCEtQH6su0Ojonu_9sAOJAo-67_zZk90f_BZlU8"
+
     print(f"SUPABASE_URL: {SUPABASE_URL}")
     print(f"SUPABASE_ANON_KEY present: {bool(SUPABASE_ANON_KEY)}")
 
