@@ -200,9 +200,8 @@ async function markPaidBackend(loanId, week, amount){
         });
 
         if(res.ok){
-            const payment = await res.json();
-            // Update UI with payment ID for undo
-            updatePaymentUI(loanId, week, 'paid', payment.id);
+            // Reload data to show undo button
+            loadAllBorrowersHorizontal();
         } else {
             alert("Failed to mark payment.");
             // Revert UI to unpaid
