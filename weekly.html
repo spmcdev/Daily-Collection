@@ -208,7 +208,7 @@ async function markPaidBackend(loanId, week, amount){
 }
 
 // Undo payment
-async function undoPayment(paymentId){
+async function undoPayment(paymentId, button = null){
     // Find the loan and week for this payment to update UI
     const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
     let loanId = null;
@@ -237,6 +237,10 @@ async function undoPayment(paymentId){
         const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
         if(res.ok){
             loadAllBorrowersHorizontal();
+            if(button){
+                button.disabled = true;
+                button.innerHTML = 'Undone';
+            }
         } else {
             alert("Failed to undo payment.");
             // Revert UI to paid
@@ -275,7 +279,7 @@ async function toggleEdit(loanId){
     } else {
         let tableHTML = '<table><thead><tr><th>Week</th><th>Amount</th><th>Action</th></tr></thead><tbody>';
         paidPayments.forEach(payment => {
-            tableHTML += `<tr><td>${payment.week}</td><td>${formatLKR(payment.amount)}</td><td><button onclick="undoPayment(${payment.id})">Undo</button></td></tr>`;
+            tableHTML += `<tr><td>${payment.week}</td><td>${formatLKR(payment.amount)}</td><td><button onclick="undoPayment(${payment.id}, this)">Undo</button></td></tr>`;
         });
         tableHTML += '</tbody></table>';
         editContent.innerHTML = tableHTML;
