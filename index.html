@@ -69,9 +69,11 @@
    <table id="loans-table">
     <thead>
       <tr>
+        <th>Loan ID</th>
         <th>Borrower ID</th>
         <th>Borrower</th>
         <th>Amount</th>
+        <th>Start Date</th>
         <th>Interest %</th>
         <th>Weeks</th>
         <th>Paid Weeks</th>
@@ -124,6 +126,7 @@ async function loadLoans(){
     const tbody = document.querySelector("#loans-table tbody");
     tbody.innerHTML = "";
 
+    let loanCounter = 1;
     loans.forEach(loan => {
         const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
         const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
@@ -147,9 +150,11 @@ async function loadLoans(){
             formatLKR(weeklyInstallment);
 
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${loan.borrower_id}</td>
+        tr.innerHTML = `<td>${loanCounter++}</td>
+                        <td>${loan.borrower_id}</td>
                         <td>${loan.borrower}</td>
                         <td>${formatLKR(loan.amount)}</td>
+                        <td>${new Date(loan.start_date).toLocaleDateString("si-LK")}</td>
                         <td>${loan.interest}</td>
                         <td>${loan.weeks}</td>
                         <td>${paidWeeks}</td>
@@ -275,8 +280,9 @@ async function exportToCSV(){
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
-    let csvContent = "Borrower ID,Borrower,Amount,Interest %,Weeks,Paid Weeks,Remaining Weeks,Total Paid,Remaining Amount,Weekly Installment,Start Date,Completion Status\n";
+    let csvContent = "Loan ID,Borrower ID,Borrower,Amount,Start Date,Interest %,Weeks,Paid Weeks,Remaining Weeks,Total Paid,Remaining Amount,Weekly Installment,Next Due Date,Completion Status\n";
 
+    let csvCounter = 1;
     loans.forEach(loan => {
         const weeklyInstallment = (loan.amount*(1 + loan.interest/100)/loan.weeks).toFixed(2);
         const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
@@ -285,7 +291,16 @@ async function exportToCSV(){
         const totalPaid = (weeklyInstallment * paidWeeks).toFixed(2);
         const completionStatus = paidWeeks === loan.weeks ? "Completed" : "In Progress";
 
-        csvContent += `${loan.borrower_id},"${loan.borrower}",${loan.amount},${loan.interest}%,${loan.weeks},${paidWeeks},${remainingWeeks},${totalPaid},${remainingAmount},${weeklyInstallment},${loan.start_date},${completionStatus}\n`;
+        // Next due date
+        let nextDueDate = "-";
+        if(remainingWeeks > 0){
+            const nextWeekNumber = paidWeeks + 1;
+            const dueDateObj = new Date(loan.start_date);
+            dueDateObj.setDate(dueDateObj.getDate() + 7 * nextWeekNumber);
+            nextDueDate = dueDateObj.toLocaleDateString("si-LK");
+        }
+
+        csvContent += `${csvCounter++},${loan.borrower_id},"${loan.borrower}",${loan.amount},${loan.start_date},${loan.interest}%,${loan.weeks},${paidWeeks},${remainingWeeks},${totalPaid},${remainingAmount},${weeklyInstallment},${nextDueDate},${completionStatus}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -306,8 +321,8 @@ function initializeSearch(){
         const tableRows = document.querySelectorAll('#loans-table tbody tr');
 
         tableRows.forEach(row => {
-            const borrowerId = row.cells[0].textContent.toLowerCase();
-            const borrowerName = row.cells[1].textContent.toLowerCase();
+            const borrowerId = row.cells[1].textContent.toLowerCase();
+            const borrowerName = row.cells[2].textContent.toLowerCase();
 
             if (borrowerId.includes(searchTerm) || borrowerName.includes(searchTerm)) {
                 row.style.display = '';

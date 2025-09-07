@@ -74,6 +74,7 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
       <tr>
         <th>Borrower ID</th>
         <th>Borrower</th>
+        <th>Loan Amount</th>
         <th>Installment Amount</th>
         <th>Due Date</th>
       </tr>
@@ -108,13 +109,14 @@ async function loadAllBorrowersHorizontal(){
     const container = document.getElementById("borrowers-container");
     container.innerHTML = "";
 
+    let loanCounter = 1;
     loans.forEach(loan => {
         const weeklyInstallment = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
         const borrowerDiv = document.createElement("div");
         borrowerDiv.style.marginBottom = "25px";
 
         const header = document.createElement("div");
-        header.innerHTML = `<strong>Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'}</strong> <button onclick="toggleEdit(${loan.id})">Edit</button>`;
+        header.innerHTML = `<strong>Loan #${loanCounter++}: Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'} | Loan Amount: ${formatLKR(loan.amount)}</strong> <button onclick="toggleEdit(${loan.id})">Edit</button>`;
         header.style.marginBottom = "5px";
         borrowerDiv.appendChild(header);
 
@@ -396,6 +398,7 @@ async function checkDueByDate(){
                 tr.innerHTML = `
                     <td>${loan.borrower_id || '-'}</td>
                     <td>${loan.borrower}</td>
+                    <td>${formatLKR(loan.amount)}</td>
                     <td>${formatLKR(weeklyAmount)}</td>
                     <td>${nextDue.toLocaleDateString("si-LK")}</td>
                 `;
@@ -408,7 +411,7 @@ async function checkDueByDate(){
     if(grandTotal > 0){
         const trTotal = document.createElement("tr");
         trTotal.innerHTML = `
-            <td colspan="2"><strong>Total</strong></td>
+            <td colspan="3"><strong>Total</strong></td>
             <td><strong>${formatLKR(grandTotal)}</strong></td>
             <td></td>
         `;
