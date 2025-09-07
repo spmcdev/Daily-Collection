@@ -17,18 +17,32 @@
   .dashboard-card h2 { margin-bottom: 10px; }
   .dashboard-card p { font-size: 1.3em; font-weight: bold; }
 
-  .section { max-width: 1000px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+  .section { max-width: 1200px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
   .section h2 { color: #2c3e50; margin-bottom: 15px; text-align: center; }
 
-  .section { max-width: 1000px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #ddd; }
-  th { background-color: #3498db; color: white; }
+  .table-container { overflow-x: auto; margin-top: 10px; }
+  table { min-width: 1200px; border-collapse: collapse; }
+  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #ddd; font-size: 13px; white-space: nowrap; }
+  th { background-color: #3498db; color: white; font-weight: 600; }
   tbody tr:nth-child(even) { background-color: #f9f9f9; }
   tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 
-  button { padding: 5px 10px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; }
-  button:hover { background-color: #c0392b; }
+  /* Improved button styling */
+  button { padding: 8px 16px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
+  button:hover { background-color: #c0392b; transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+  /* Improved search bar styling */
+  #search-input { padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; width: 280px; font-size: 14px; transition: all 0.3s ease; }
+  #search-input:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+
+  /* Action buttons in table */
+  .action-btn { padding: 6px 12px; font-size: 12px; margin-right: 4px; }
+  .edit-btn { background-color: #f39c12; }
+  .edit-btn:hover { background-color: #e67e22; }
+  .delete-btn { background-color: #e74c3c; }
+  .delete-btn:hover { background-color: #c0392b; }
+  .export-btn { background-color: #27ae60; }
+  .export-btn:hover { background-color: #229954; }
 </style>
 </head>
 <body>
@@ -60,34 +74,36 @@
    <h2>Recent Loans</h2>
    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
        <div>
-           <input type="text" id="search-input" placeholder="Search by Borrower ID or Name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; width: 250px; font-size: 14px;">
+           <input type="text" id="search-input" placeholder="Search by Borrower ID or Name...">
        </div>
        <div>
-           <button onclick="exportToCSV()" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Export to CSV</button>
+           <button onclick="exportToCSV()" class="export-btn">Export to CSV</button>
        </div>
    </div>
-   <table id="loans-table">
-    <thead>
-      <tr>
-        <th>Loan ID</th>
-        <th>Borrower ID</th>
-        <th>Borrower</th>
-        <th>Amount</th>
-        <th>Start Date</th>
-        <th>Interest %</th>
-        <th>Weeks</th>
-        <th>Paid Weeks</th>
-        <th>Remaining Weeks</th>
-        <th>Total Paid</th>
-        <th>Remaining Amount</th>
-        <th>Weekly Installment</th>
-        <th>Next Due Date</th>
-        <th>Completion Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+   <div class="table-container">
+    <table id="loans-table">
+      <thead>
+        <tr>
+          <th>Loan ID</th>
+          <th>Borrower ID</th>
+          <th>Borrower</th>
+          <th>Amount</th>
+          <th>Start Date</th>
+          <th>Interest %</th>
+          <th>Weeks</th>
+          <th>Paid Weeks</th>
+          <th>Remaining Weeks</th>
+          <th>Total Paid</th>
+          <th>Remaining Amount</th>
+          <th>Weekly Installment</th>
+          <th>Next Due Date</th>
+          <th>Completion Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+   </div>
 </div>
 
 <script>
@@ -167,8 +183,8 @@ async function loadLoans(){
                         <td>${nextDueDate}</td>
                         <td style="font-weight: bold; color: ${isCompleted ? '#27ae60' : '#f39c12'};">${isCompleted ? 'Completed' : 'In Progress'}</td>
                         <td>
-                            <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" style="background-color: #f39c12; margin-right: 5px;">Edit</button>
-                            <button onclick="deleteLoan(${loan.id})">Delete</button>
+                            <button onclick="editLoan(${loan.id}, '${loan.borrower_id}', '${loan.borrower}', ${loan.amount}, ${loan.interest}, ${loan.weeks}, '${loan.start_date}')" class="action-btn edit-btn">Edit</button>
+                            <button onclick="deleteLoan(${loan.id})" class="action-btn delete-btn">Delete</button>
                         </td>`;
         tbody.appendChild(tr);
     });
@@ -209,8 +225,8 @@ function editLoan(id, borrowerId, borrower, amount, interest, weeks, startDate){
                 <label>Start Date:</label>
                 <input type="date" id="edit-start-date" value="${startDate}" required><br><br>
 
-                <button type="submit">Update Loan</button>
-                <button type="button" onclick="closeModal()" style="background: #95a5a6; margin-left: 10px;">Cancel</button>
+                <button type="submit" style="background-color: #27ae60;">Update Loan</button>
+                <button type="button" onclick="closeModal()" style="background-color: #95a5a6; margin-left: 10px;">Cancel</button>
             </form>
         </div>
     `;
