@@ -109,8 +109,8 @@ async function loadAllBorrowersHorizontal(){
     const container = document.getElementById("borrowers-container");
     container.innerHTML = "";
 
-    // Sort loans by latest start date (descending)
-    loans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    // Sort loans by loan ID ascending
+    loans.sort((a, b) => a.id - b.id);
 
     loans.forEach(loan => {
         const weeklyInstallment = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
