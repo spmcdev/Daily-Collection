@@ -12,7 +12,7 @@
 
   h1 { text-align: center; margin-top: 25px; color: #34495e; }
 
-  .dashboard-container { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin: 20px; }
+  .dashboard-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px; }
   .dashboard-card { flex: 1 1 250px; text-align: center; padding: 20px; border-radius: 10px; background: linear-gradient(135deg, #3498db, #2980b9); color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
   .dashboard-card h2 { margin-bottom: 10px; }
   .dashboard-card p { font-size: 1.3em; font-weight: bold; }
@@ -89,16 +89,28 @@
 <h1>Dashboard</h1>
 <div class="dashboard-container">
   <div class="dashboard-card">
-    <h2>Total Loans</h2>
-    <p id="total-loans">LKR 0</p>
+    <h2>Total Principal</h2>
+    <p id="total-principal">LKR 0</p>
   </div>
   <div class="dashboard-card">
-    <h2>Total Received</h2>
-    <p id="total-received">LKR 0</p>
+    <h2>Total Interest</h2>
+    <p id="total-interest">LKR 0</p>
   </div>
   <div class="dashboard-card">
-    <h2>Outstanding</h2>
-    <p id="total-outstanding">LKR 0</p>
+    <h2>Principal Received</h2>
+    <p id="principal-received">LKR 0</p>
+  </div>
+  <div class="dashboard-card">
+    <h2>Interest Received</h2>
+    <p id="interest-received">LKR 0</p>
+  </div>
+  <div class="dashboard-card">
+    <h2>Principal Outstanding</h2>
+    <p id="principal-outstanding">LKR 0</p>
+  </div>
+  <div class="dashboard-card">
+    <h2>Interest Outstanding</h2>
+    <p id="interest-outstanding">LKR 0</p>
   </div>
 </div>
 
@@ -153,15 +165,32 @@ async function loadDashboard(){
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
-    let totalLoans = 0;
-    let totalReceived = 0;
+    let totalPrincipal = 0;
+    let totalInterest = 0;
+    let principalReceived = 0;
+    let interestReceived = 0;
 
-    loans.forEach(loan => totalLoans += loan.amount * (1 + loan.interest/100));
-    payments.forEach(p => totalReceived += p.amount);
+    loans.forEach(loan => {
+        const loanPrincipal = loan.amount;
+        const loanInterest = loan.amount * (loan.interest / 100);
+        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const proportionPaid = loan.weeks > 0 ? paidWeeks / loan.weeks : 0;
 
-    document.getElementById("total-loans").innerText = formatLKR(totalLoans);
-    document.getElementById("total-received").innerText = formatLKR(totalReceived);
-    document.getElementById("total-outstanding").innerText = formatLKR(totalLoans - totalReceived);
+        totalPrincipal += loanPrincipal;
+        totalInterest += loanInterest;
+        principalReceived += loanPrincipal * proportionPaid;
+        interestReceived += loanInterest * proportionPaid;
+    });
+
+    const principalOutstanding = totalPrincipal - principalReceived;
+    const interestOutstanding = totalInterest - interestReceived;
+
+    document.getElementById("total-principal").innerText = formatLKR(totalPrincipal);
+    document.getElementById("total-interest").innerText = formatLKR(totalInterest);
+    document.getElementById("principal-received").innerText = formatLKR(principalReceived);
+    document.getElementById("interest-received").innerText = formatLKR(interestReceived);
+    document.getElementById("principal-outstanding").innerText = formatLKR(principalOutstanding);
+    document.getElementById("interest-outstanding").innerText = formatLKR(interestOutstanding);
 }
 
 // Load Loans Table
