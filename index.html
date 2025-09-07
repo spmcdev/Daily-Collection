@@ -31,6 +31,10 @@
 
   .dashboard-card {
       flex: 0 0 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
       padding: 10px 8px;
       border-radius: 8px;
@@ -93,16 +97,6 @@
       background: linear-gradient(135deg, #f39c12, #e67e22);
   }
 
-  /* Add icons using CSS */
-  .dashboard-card:nth-child(1)::after,
-  .dashboard-card:nth-child(5)::after { content: "💰"; font-size: 1.2em; position: absolute; top: 5px; right: 6px; opacity: 0.3; }
-
-  .dashboard-card:nth-child(2)::after,
-  .dashboard-card:nth-child(6)::after { content: "📈"; font-size: 1.2em; position: absolute; top: 5px; right: 6px; opacity: 0.3; }
-
-  .dashboard-card:nth-child(3)::after { content: "✅"; font-size: 1.2em; position: absolute; top: 5px; right: 6px; opacity: 0.3; }
-
-  .dashboard-card:nth-child(4)::after { content: "💹"; font-size: 1.2em; position: absolute; top: 5px; right: 6px; opacity: 0.3; }
 
   /* Responsive adjustments - keep single row with scroll */
   @media (max-width: 1000px) {
