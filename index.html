@@ -21,9 +21,41 @@
   .section h2 { color: #2c3e50; margin-bottom: 15px; text-align: center; }
 
   .table-container { overflow-x: auto; margin-top: 10px; }
-  table { min-width: 1200px; border-collapse: collapse; }
-  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #ddd; font-size: 13px; white-space: nowrap; }
-  th { background-color: #3498db; color: white; font-weight: 600; }
+  table { min-width: 800px; border-collapse: collapse; font-size: 11px; }
+  th, td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #ddd; white-space: nowrap; }
+  th { background-color: #3498db; color: white; font-weight: 600; font-size: 11px; }
+
+  /* Specific column widths */
+  th:nth-child(1), td:nth-child(1) { width: 60px; } /* Loan ID */
+  th:nth-child(2), td:nth-child(2) { width: 80px; } /* Borrower ID */
+  th:nth-child(3), td:nth-child(3) { width: 120px; } /* Borrower */
+  th:nth-child(4), td:nth-child(4) { width: 90px; } /* Amount */
+  th:nth-child(5), td:nth-child(5) { width: 80px; } /* Start Date */
+  th:nth-child(6), td:nth-child(6) { width: 60px; } /* Interest */
+  th:nth-child(7), td:nth-child(7) { width: 50px; } /* Weeks */
+  th:nth-child(8), td:nth-child(8) { width: 60px; } /* Paid Weeks */
+  th:nth-child(9), td:nth-child(9) { width: 70px; } /* Remaining Weeks */
+  th:nth-child(10), td:nth-child(10) { width: 80px; } /* Total Paid */
+  th:nth-child(11), td:nth-child(11) { width: 90px; } /* Remaining Amount */
+  th:nth-child(12), td:nth-child(12) { width: 90px; } /* Weekly Installment */
+  th:nth-child(13), td:nth-child(13) { width: 80px; } /* Next Due Date */
+  th:nth-child(14), td:nth-child(14) { width: 80px; } /* Completion Status */
+  th:nth-child(15), td:nth-child(15) { width: 100px; } /* Actions */
+
+  /* Hide less important columns on smaller screens */
+  @media (max-width: 1200px) {
+    th:nth-child(5), td:nth-child(5),
+    th:nth-child(8), td:nth-child(8),
+    th:nth-child(9), td:nth-child(9),
+    th:nth-child(13), td:nth-child(13) { display: none; }
+  }
+
+  @media (max-width: 900px) {
+    th:nth-child(6), td:nth-child(6),
+    th:nth-child(10), td:nth-child(10),
+    th:nth-child(11), td:nth-child(11),
+    th:nth-child(12), td:nth-child(12) { display: none; }
+  }
   tbody tr:nth-child(even) { background-color: #f9f9f9; }
   tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 
@@ -32,16 +64,16 @@
   button:hover { background-color: #c0392b; transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
   /* Improved search bar styling */
-  #search-input { padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; width: 280px; font-size: 14px; transition: all 0.3s ease; }
-  #search-input:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
+  #search-input { padding: 6px 10px; border: 2px solid #ddd; border-radius: 6px; width: 220px; font-size: 12px; transition: all 0.3s ease; }
+  #search-input:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1); }
 
   /* Action buttons in table */
-  .action-btn { padding: 6px 12px; font-size: 12px; margin-right: 4px; }
+  .action-btn { padding: 3px 8px; font-size: 10px; margin-right: 2px; border-radius: 3px; }
   .edit-btn { background-color: #f39c12; }
   .edit-btn:hover { background-color: #e67e22; }
   .delete-btn { background-color: #e74c3c; }
   .delete-btn:hover { background-color: #c0392b; }
-  .export-btn { background-color: #27ae60; }
+  .export-btn { background-color: #27ae60; padding: 8px 16px; }
   .export-btn:hover { background-color: #229954; }
 </style>
 </head>
