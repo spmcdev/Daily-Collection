@@ -109,14 +109,16 @@ async function loadAllBorrowersHorizontal(){
     const container = document.getElementById("borrowers-container");
     container.innerHTML = "";
 
-    let loanCounter = 1;
+    // Sort loans by latest start date (descending)
+    loans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+
     loans.forEach(loan => {
         const weeklyInstallment = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
         const borrowerDiv = document.createElement("div");
         borrowerDiv.style.marginBottom = "25px";
 
         const header = document.createElement("div");
-        header.innerHTML = `<strong>Loan #${loanCounter++}: Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'} | Loan Amount: ${formatLKR(loan.amount)}</strong> <button onclick="toggleEdit(${loan.id})">Edit</button>`;
+        header.innerHTML = `<strong>Loan ID: ${loan.id} | Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id || '-'} | Loan Amount: ${formatLKR(loan.amount)}</strong> <button onclick="toggleEdit(${loan.id})">Edit</button>`;
         header.style.marginBottom = "5px";
         borrowerDiv.appendChild(header);
 
