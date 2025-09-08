@@ -114,7 +114,13 @@ async function loadBorrowerSummary(){
     borrowerLoans.sort((a, b) => {
         const dateA = new Date(a.start_date);
         const dateB = new Date(b.start_date);
-        return dateB.getTime() - dateA.getTime(); // Latest first
+        const dateDiff = dateB.getTime() - dateA.getTime();
+        // If dates are equal, sort by loan ID ascending (smaller ID first)
+        if (dateDiff === 0) {
+            console.log(`Same date for loans ${a.id} and ${b.id}, sorting by ID`);
+            return a.id - b.id;
+        }
+        return dateDiff; // Latest first
     });
 
     console.log("After initial sort:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
@@ -136,7 +142,12 @@ async function loadBorrowerSummary(){
     borrowerLoans.sort((a, b) => {
         const dateA = new Date(a.start_date);
         const dateB = new Date(b.start_date);
-        return dateB.getTime() - dateA.getTime(); // Latest first
+        const dateDiff = dateB.getTime() - dateA.getTime();
+        // If dates are equal, sort by loan ID ascending (smaller ID first)
+        if (dateDiff === 0) {
+            return a.id - b.id;
+        }
+        return dateDiff; // Latest first
     });
 
     console.log("Final sorted order:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
