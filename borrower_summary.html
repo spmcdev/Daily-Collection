@@ -136,26 +136,10 @@ async function loadBorrowerSummary(){
     // Debug: Log before sorting
     console.log("Before sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date, borrower_id: l.borrower_id})));
 
-    // Sort loans by start date (latest first), then by ID ascending for same dates
-    borrowerLoans.sort((a, b) => {
-        // Parse dates properly
-        const dateA = new Date(a.start_date + 'T00:00:00');
-        const dateB = new Date(b.start_date + 'T00:00:00');
+    // Sort loans by loan ID descending (latest ID first) - same as Dashboard
+    borrowerLoans.sort((a, b) => b.id - a.id);
 
-        // Compare dates first
-        const dateComparison = dateB.getTime() - dateA.getTime();
-
-        // If dates are different, return date comparison
-        if (dateComparison !== 0) {
-            return dateComparison;
-        }
-
-        // If dates are the same, sort by loan ID ascending (smaller ID first)
-        console.log(`Same date (${a.start_date}) for loans ${a.id} and ${b.id}, sorting by ID`);
-        return a.id - b.id;
-    });
-
-    console.log("After sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
+    console.log("After sorting by loan ID (descending):", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
 
     const container = document.getElementById("summary-container");
     container.innerHTML = "";
