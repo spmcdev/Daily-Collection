@@ -512,21 +512,10 @@ function initializeSearch(){
     });
 }
 
-// Environment detection and banner display
+// Environment banner removed - now using only production environment
 function showEnvironmentBanner(){
-    const hostname = window.location.hostname;
     const banner = document.getElementById('env-banner');
-
-    // Show banner on staging/demo environments
-    if (hostname.includes('staging') || hostname.includes('preview') || hostname.includes('git-') || hostname.includes('vercel-preview') ||
-        (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'staging')) {
-        banner.style.display = 'block';
-        banner.innerHTML = '🚧 DEMO ENVIRONMENT - Testing Only 🚧<br><small>This is a staging site. Your real data is safe on the production site.</small>';
-    }
-    // Hide banner on production
-    else {
-        banner.style.display = 'none';
-    }
+    banner.style.display = 'none';
 }
 
 // Call both on load

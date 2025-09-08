@@ -140,7 +140,6 @@ async function loadBorrowerSummary(){
     borrowerLoans.sort((a, b) => b.id - a.id);
 
     console.log("After sorting by loan ID (descending):", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
-    console.log("Staging environment test - final redeploy check - staging data should be visible now!");
 
     const container = document.getElementById("summary-container");
     container.innerHTML = "";

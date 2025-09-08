@@ -1,11 +1,11 @@
-// Test the new staging database connection
+// Test the database connection
 const { createClient } = require('@supabase/supabase-js');
 
-const SUPABASE_URL = "https://bkiglesjdwgvomsyfxkc.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraWdsZXNqZHdndm9tc3lmeGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDk5NjAsImV4cCI6MjA3MjkyNTk2MH0.k89ZlaOQwlJjRux02JqGHLEizrhy7D9cVCXa8Cq9KgU";
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-async function testNewDatabase() {
-  console.log('🧪 Testing new staging database connection...\n');
+async function testDatabase() {
+  console.log('🧪 Testing database connection...\n');
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -42,11 +42,11 @@ async function testNewDatabase() {
       });
     }
 
-    console.log('\n🎉 New staging database test completed successfully!');
+    console.log('\n🎉 Database test completed successfully!');
 
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
   }
 }
 
-testNewDatabase();
+testDatabase();
