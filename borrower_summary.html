@@ -107,9 +107,6 @@ async function loadBorrowerSummary(){
 
     let borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
 
-    // Sort loans by start date (latest first)
-    borrowerLoans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
-
     // Apply filter
     if(filterType === "completed"){
         borrowerLoans = borrowerLoans.filter(loan => {
@@ -122,6 +119,9 @@ async function loadBorrowerSummary(){
             return paidWeeks < loan.weeks;
         });
     }
+
+    // Sort loans by start date (latest first) - applied after filtering
+    borrowerLoans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
     const container = document.getElementById("summary-container");
     container.innerHTML = "";
