@@ -21,6 +21,11 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 .paid { background-color: #2ecc71; }
 .unpaid { background-color: #e74c3c; }
 .overdue { background-color: #e67e22; font-weight: bold; }
+.highlighted { background-color: #f39c12 !important; border: 2px solid #e67e22; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+button.processing { background-color: #f39c12; }
+button.processing::after { content: " Processing..."; }
 input, button { padding: 8px; font-size: 16px; margin-top: 5px; }
 button { cursor: pointer; background-color: #3498db; color: white; border: none; border-radius: 5px; }
 button:hover { background-color: #2980b9; }
@@ -62,7 +67,7 @@ button:hover { background-color: #2980b9; }
       <label>Select Date:</label>
       <input type="date" id="future-date-input" style="margin-left: 10px;">
     </div>
-    <button onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Due</button>
+    <button id="show-installments-btn" onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Due</button>
   </div>
   <div id="installments-due-container" style="margin-top: 20px;"></div>
 </div>
@@ -88,6 +93,12 @@ async function loadBorrowerSummary(){
     // Show the filter and installments search sections when borrower ID is entered
     document.getElementById("filter-section").style.display = "block";
     document.getElementById("installments-search-section").style.display = "block";
+
+    // Clear previous search results and highlights
+    window.lastSearchResults = null;
+    document.querySelectorAll('.highlighted').forEach(el => {
+        el.classList.remove('highlighted');
+    });
 
     const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
@@ -227,6 +238,7 @@ async function showInstallmentsDue(){
     try {
         const borrowerId = document.getElementById("borrower-id-input").value.trim();
         const futureDateStr = document.getElementById("future-date-input").value;
+        const button = document.getElementById("show-installments-btn");
 
         console.log("Show Installments Due called with:", { borrowerId, futureDateStr });
 
@@ -240,6 +252,11 @@ async function showInstallmentsDue(){
             return;
         }
 
+        // Show loading state
+        button.disabled = true;
+        button.classList.add('processing');
+        button.textContent = 'Processing...';
+
         const futureDate = new Date(futureDateStr);
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set to start of today
@@ -247,6 +264,10 @@ async function showInstallmentsDue(){
 
         if(futureDate < today){
             alert("Please select today or a future date");
+            // Reset button state
+            button.disabled = false;
+            button.classList.remove('processing');
+            button.textContent = 'Show Installments Due';
             return;
         }
 
@@ -277,12 +298,22 @@ async function showInstallmentsDue(){
     let totalDue = 0;
     let installmentsData = [];
 
+    // Create payment lookup map for better performance
+    const paymentMap = new Map();
+    payments.forEach(p => {
+        if (!paymentMap.has(p.loan_id)) {
+            paymentMap.set(p.loan_id, new Set());
+        }
+        paymentMap.get(p.loan_id).add(p.week);
+    });
+
     borrowerLoans.forEach(loan => {
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks);
         // Parse date string explicitly to avoid timezone issues
         const dateParts = loan.start_date.split('-');
         const startDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const loanPayments = paymentMap.get(loan.id) || new Set();
+        const paidWeeks = loanPayments.size;
         const todayStart = new Date(today);
         todayStart.setHours(0, 0, 0, 0);
 
@@ -291,8 +322,8 @@ async function showInstallmentsDue(){
             dueDate.setDate(dueDate.getDate() + 7 * week);
 
             if(dueDate <= futureDate){
-                // Check if payment exists for this specific week
-                const hasPaymentForWeek = payments.some(p => p.loan_id === loan.id && p.week === week);
+                // Use the payment map for faster lookup
+                const hasPaymentForWeek = loanPayments.has(week);
                 const dueDateStart = new Date(dueDate);
                 dueDateStart.setHours(0, 0, 0, 0);
 
@@ -321,8 +352,19 @@ async function showInstallmentsDue(){
 
     if(filteredInstallments.length === 0){
         container.innerHTML = `<p>No installments due up to the selected date for borrower ID "${borrowerId}".</p>`;
+        // Reset button state
+        button.disabled = false;
+        button.classList.remove('processing');
+        button.textContent = 'Show Installments Due';
         return;
     }
+
+    // Store search results for highlighting
+    window.lastSearchResults = {
+        borrowerId: borrowerId,
+        futureDate: futureDate,
+        installments: filteredInstallments
+    };
 
     // Sort by due date
     filteredInstallments.sort((a, b) => a.dueDate - b.dueDate);
@@ -369,10 +411,56 @@ async function showInstallmentsDue(){
     </div>`;
 
     container.innerHTML = tableHTML;
+
+    // Highlight matching installments in loan tables
+    highlightMatchingInstallments();
+
+    // Reset button state
+    button.disabled = false;
+    button.classList.remove('processing');
+    button.textContent = 'Show Installments Due';
+
     } catch (error) {
         console.error("Error in showInstallmentsDue:", error);
         container.innerHTML = `<p style="color: red;">Error loading installments: ${error.message}</p>`;
+
+        // Reset button state on error
+        const button = document.getElementById("show-installments-btn");
+        if(button) {
+            button.disabled = false;
+            button.classList.remove('processing');
+            button.textContent = 'Show Installments Due';
+        }
     }
+}
+
+// Highlight matching installments in loan tables
+function highlightMatchingInstallments() {
+    if (!window.lastSearchResults) return;
+
+    const { installments } = window.lastSearchResults;
+
+    // Remove existing highlights
+    document.querySelectorAll('.highlighted').forEach(el => {
+        el.classList.remove('highlighted');
+    });
+
+    // Highlight matching weeks in loan tables
+    installments.forEach(installment => {
+        const loanRows = document.querySelectorAll('#summary-container table tbody tr');
+        loanRows.forEach(row => {
+            const weekCell = row.cells[0]; // Week column
+            const statusCell = row.cells[1]; // Status column
+
+            if (weekCell && statusCell && weekCell.textContent == installment.week) {
+                // Check if this row belongs to the same borrower
+                const borrowerCell = row.closest('div').querySelector('h3');
+                if (borrowerCell && borrowerCell.textContent.includes(installment.borrower)) {
+                    row.classList.add('highlighted');
+                }
+            }
+        });
+    });
 }
 </script>
 </body>
