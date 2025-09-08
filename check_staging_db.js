@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Staging database credentials
-const SUPABASE_URL = "https://ilfzwscebfvvfcprownn.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsZnp3c2NlYmZ2dmZjcHJvd25uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczMDQ1MTcsImV4cCI6MjA3Mjg4MDUxN30.jzwe74ymANw5jE_WL2XHupS1GvbRU4muAUCgVAs9BFo";
+const SUPABASE_URL = "https://bkiglesjdwgvomsyfxkc.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraWdsZXNqZHdndm9tc3lmeGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDk5NjAsImV4cCI6MjA3MjkyNTk2MH0.k89ZlaOQwlJjRux02JqGHLEizrhy7D9cVCXa8Cq9KgU";
 
 async function checkStagingData() {
   try {
