@@ -108,6 +108,7 @@ async function loadBorrowerSummary(){
     // Debug: Log borrower ID input and available loans
     console.log("Borrower ID entered:", borrowerId);
     console.log("Available borrower IDs in database:", [...new Set(loans.map(l => l.borrower_id))]);
+    console.log("Available loan IDs in database:", loans.map(l => l.id).sort((a,b) => a - b));
     console.log("All loans before filtering:", loans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
 
     let borrowerLoans = loans.filter(l => {
@@ -117,6 +118,7 @@ async function loadBorrowerSummary(){
     });
 
     console.log("Loans after borrower ID filtering:", borrowerLoans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
+    console.log("Loan IDs after filtering:", borrowerLoans.map(l => l.id).sort((a,b) => a - b));
 
     // Apply filter first
     if(filterType === "completed"){
