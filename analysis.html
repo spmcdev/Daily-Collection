@@ -51,14 +51,46 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
   </div>
 </div>
 
-<div class="section chart-container">
-  <h2>Top Borrowers</h2>
-  <canvas id="topBorrowersChart"></canvas>
+<div class="section">
+  <h2>Profit & Loss Analysis</h2>
+  <div class="summary-boxes">
+    <div class="summary-box" style="background: linear-gradient(135deg, #27ae60, #229954);">
+      Total Interest Earned
+      <p id="total-interest-earned">LKR 0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+      Monthly Interest Rate
+      <p id="monthly-interest-rate">0%</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+      Annual Interest Rate
+      <p id="annual-interest-rate">0%</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #1abc9c, #16a085);">
+      Profit on LKR 100,000
+      <p id="profit-on-100k">LKR 0</p>
+    </div>
+  </div>
 </div>
 
-<div class="section chart-container">
-  <h2>Weekly Collection Trend</h2>
-  <canvas id="weeklyTrendChart"></canvas>
+<div class="section">
+  <h2>Top Borrowers by Amount</h2>
+  <table id="topBorrowersTable">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Borrower ID</th>
+        <th>Borrower Name</th>
+        <th>Loan Amount</th>
+        <th>Interest Rate</th>
+        <th>Total Amount</th>
+        <th>Paid Amount</th>
+        <th>Outstanding</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <div class="section chart-container">
@@ -66,21 +98,6 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
   <canvas id="paidUnpaidChart"></canvas>
 </div>
 
-<div class="section">
-  <h2>Top Borrowers - Amount Taken & Remaining</h2>
-  <table id="topBorrowersTable">
-    <thead>
-      <tr>
-        <th>Borrower ID</th>
-        <th>Borrower Name</th>
-        <th>Amount Taken</th>
-        <th>Amount Remaining</th>
-        <th>Completion %</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
 
 <div class="section">
   <h2>Overdue Payments (Not Completed on Time)</h2>
@@ -151,58 +168,73 @@ async function loadSummary(){
 
   let totalLoans = 0;
   let totalReceived = 0;
+  let totalInterestEarned = 0;
 
-  loans.forEach(loan => totalLoans += loan.amount * (1 + loan.interest/100));
-  payments.forEach(p => totalReceived += p.amount);
+  loans.forEach(loan => {
+    const totalAmount = loan.amount * (1 + loan.interest/100);
+    const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+    const paidAmount = paidWeeks * (totalAmount / loan.weeks);
+
+    totalLoans += totalAmount;
+    totalReceived += paidAmount;
+    totalInterestEarned += paidAmount - (loan.amount * paidWeeks / loan.weeks);
+  });
+
+  // Calculate profit analysis
+  const avgInterestRate = loans.length > 0 ? loans.reduce((sum, loan) => sum + loan.interest, 0) / loans.length : 0;
+  const monthlyInterestRate = avgInterestRate / 12;
+  const annualInterestRate = avgInterestRate;
+  const profitOn100k = (100000 * avgInterestRate) / 100;
 
   document.getElementById("total-loans").innerText = formatLKR(totalLoans);
   document.getElementById("total-received").innerText = formatLKR(totalReceived);
   document.getElementById("total-outstanding").innerText = formatLKR(totalLoans - totalReceived);
+  document.getElementById("total-interest-earned").innerText = formatLKR(totalInterestEarned);
+  document.getElementById("monthly-interest-rate").innerText = monthlyInterestRate.toFixed(2) + "%";
+  document.getElementById("annual-interest-rate").innerText = annualInterestRate.toFixed(2) + "%";
+  document.getElementById("profit-on-100k").innerText = formatLKR(profitOn100k);
 
   return {loans, payments};
 }
 
-// Top borrowers chart
-function renderTopBorrowers(loans){
-  const sorted = loans.sort((a,b)=> (b.amount*(1+b.interest/100)) - (a.amount*(1+a.interest/100))).slice(0,10);
-  const labels = sorted.map(l => l.borrower);
-  const data = sorted.map(l => (l.amount*(1+l.interest/100)).toFixed(2));
+// Top borrowers table (replacing chart)
+function renderTopBorrowersTable(loans, payments) {
+  const tbody = document.querySelector('#topBorrowersTable tbody');
+  tbody.innerHTML = '';
 
-  new Chart(document.getElementById('topBorrowersChart'), {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'Total Loan Amount', data, backgroundColor: '#3498db' }] },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-  });
-}
+  const sortedLoans = loans
+    .map(loan => {
+      const totalAmount = loan.amount * (1 + loan.interest/100);
+      const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+      const paidAmount = paidWeeks * (totalAmount / loan.weeks);
+      const outstandingAmount = totalAmount - paidAmount;
+      const isCompleted = paidWeeks >= loan.weeks;
 
-// Weekly collection trend
-function renderWeeklyTrend(loans, payments){
-  let weeklyMap = {};
-  loans.forEach(loan => {
-    for(let i=1; i<=loan.weeks; i++){
-      const dueDate = new Date(loan.start_date);
-      dueDate.setDate(dueDate.getDate() + 7*i);
-      const key = dueDate.toISOString().split('T')[0];
-      weeklyMap[key] = weeklyMap[key] || 0;
-    }
-  });
-  payments.forEach(p=>{
-    const loan = loans.find(l=>l.id===p.loan_id);
-    if(loan){
-      const dueDate = new Date(loan.start_date);
-      dueDate.setDate(dueDate.getDate() + 7*p.week);
-      const key = dueDate.toISOString().split('T')[0];
-      weeklyMap[key] = (weeklyMap[key] || 0) + p.amount;
-    }
-  });
+      return {
+        ...loan,
+        totalAmount,
+        paidAmount,
+        outstandingAmount,
+        isCompleted
+      };
+    })
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .slice(0, 10);
 
-  const labels = Object.keys(weeklyMap).sort();
-  const data = labels.map(l=>weeklyMap[l].toFixed(2));
-
-  new Chart(document.getElementById('weeklyTrendChart'), {
-    type: 'line',
-    data: { labels, datasets: [{ label: 'Weekly Collected', data, borderColor: '#2ecc71', fill:false, tension:0.2 }] },
-    options: { responsive: true }
+  sortedLoans.forEach((loan, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${loan.borrower_id}</td>
+      <td>${loan.borrower}</td>
+      <td>${formatLKR(loan.amount)}</td>
+      <td>${loan.interest}%</td>
+      <td>${formatLKR(loan.totalAmount)}</td>
+      <td>${formatLKR(loan.paidAmount)}</td>
+      <td>${formatLKR(loan.outstandingAmount)}</td>
+      <td style="font-weight: bold; color: ${loan.isCompleted ? '#27ae60' : '#f39c12'};">${loan.isCompleted ? 'Completed' : 'In Progress'}</td>
+    `;
+    tbody.appendChild(tr);
   });
 }
 
@@ -226,10 +258,8 @@ function renderPaidUnpaid(loans, payments){
 
 async function initAnalysis(){
   const {loans, payments} = await loadSummary();
-  renderTopBorrowers(loans);
-  renderWeeklyTrend(loans, payments);
-  renderPaidUnpaid(loans, payments);
   renderTopBorrowersTable(loans, payments);
+  renderPaidUnpaid(loans, payments);
   renderInstallmentsTable(loans, payments);
 
   // Set default date for overdue check
@@ -237,41 +267,6 @@ async function initAnalysis(){
   document.getElementById('overdue-date').value = today;
 }
 
-// Render Top Borrowers Table
-function renderTopBorrowersTable(loans, payments) {
-  const tbody = document.querySelector('#topBorrowersTable tbody');
-  tbody.innerHTML = '';
-
-  const sortedLoans = loans
-    .map(loan => {
-      const totalAmount = loan.amount * (1 + loan.interest/100);
-      const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
-      const remainingAmount = totalAmount - (paidWeeks * (totalAmount / loan.weeks));
-      const completionPercent = ((paidWeeks / loan.weeks) * 100).toFixed(1);
-
-      return {
-        ...loan,
-        totalAmount,
-        remainingAmount,
-        completionPercent,
-        paidWeeks
-      };
-    })
-    .sort((a, b) => b.totalAmount - a.totalAmount)
-    .slice(0, 10);
-
-  sortedLoans.forEach(loan => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${loan.borrower_id}</td>
-      <td>${loan.borrower}</td>
-      <td>${formatLKR(loan.totalAmount)}</td>
-      <td>${formatLKR(loan.remainingAmount)}</td>
-      <td>${loan.completionPercent}%</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
 
 // Render Detailed Installments Table
 function renderInstallmentsTable(loans, payments) {
