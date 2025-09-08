@@ -107,25 +107,7 @@ async function loadBorrowerSummary(){
 
     let borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
 
-    // Debug: Log original loan order
-    console.log("Original loan order by ID:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
-
-    // Sort loans by start date (latest first) - applied before filtering
-    borrowerLoans.sort((a, b) => {
-        const dateA = new Date(a.start_date);
-        const dateB = new Date(b.start_date);
-        const dateDiff = dateB.getTime() - dateA.getTime();
-        // If dates are equal, sort by loan ID ascending (smaller ID first)
-        if (dateDiff === 0) {
-            console.log(`Same date for loans ${a.id} and ${b.id}, sorting by ID`);
-            return a.id - b.id;
-        }
-        return dateDiff; // Latest first
-    });
-
-    console.log("After initial sort:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
-
-    // Apply filter
+    // Apply filter first
     if(filterType === "completed"){
         borrowerLoans = borrowerLoans.filter(loan => {
             const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
@@ -138,19 +120,29 @@ async function loadBorrowerSummary(){
         });
     }
 
-    // Sort loans by start date (latest first) - applied after filtering to maintain order
+    // Debug: Log before sorting
+    console.log("Before sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
+
+    // Sort loans by start date (latest first), then by ID ascending for same dates
     borrowerLoans.sort((a, b) => {
-        const dateA = new Date(a.start_date);
-        const dateB = new Date(b.start_date);
-        const dateDiff = dateB.getTime() - dateA.getTime();
-        // If dates are equal, sort by loan ID ascending (smaller ID first)
-        if (dateDiff === 0) {
-            return a.id - b.id;
+        // Parse dates properly
+        const dateA = new Date(a.start_date + 'T00:00:00');
+        const dateB = new Date(b.start_date + 'T00:00:00');
+
+        // Compare dates first
+        const dateComparison = dateB.getTime() - dateA.getTime();
+
+        // If dates are different, return date comparison
+        if (dateComparison !== 0) {
+            return dateComparison;
         }
-        return dateDiff; // Latest first
+
+        // If dates are the same, sort by loan ID ascending (smaller ID first)
+        console.log(`Same date (${a.start_date}) for loans ${a.id} and ${b.id}, sorting by ID`);
+        return a.id - b.id;
     });
 
-    console.log("Final sorted order:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
+    console.log("After sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
 
     const container = document.getElementById("summary-container");
     container.innerHTML = "";
