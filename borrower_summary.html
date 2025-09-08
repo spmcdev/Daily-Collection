@@ -105,7 +105,18 @@ async function loadBorrowerSummary(){
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
-    let borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
+    // Debug: Log borrower ID input and available loans
+    console.log("Borrower ID entered:", borrowerId);
+    console.log("Available borrower IDs in database:", [...new Set(loans.map(l => l.borrower_id))]);
+    console.log("All loans before filtering:", loans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
+
+    let borrowerLoans = loans.filter(l => {
+        const matches = String(l.borrower_id).trim() === String(borrowerId).trim();
+        console.log(`Checking loan ${l.id}: borrower_id "${l.borrower_id}" matches "${borrowerId}": ${matches}`);
+        return matches;
+    });
+
+    console.log("Loans after borrower ID filtering:", borrowerLoans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
 
     // Apply filter first
     if(filterType === "completed"){
@@ -121,7 +132,7 @@ async function loadBorrowerSummary(){
     }
 
     // Debug: Log before sorting
-    console.log("Before sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date})));
+    console.log("Before sorting:", borrowerLoans.map(l => ({id: l.id, date: l.start_date, borrower_id: l.borrower_id})));
 
     // Sort loans by start date (latest first), then by ID ascending for same dates
     borrowerLoans.sort((a, b) => {
