@@ -172,6 +172,7 @@ async function loadBorrowerSummary(){
     let totalOutstanding = 0;
 
     borrowerLoans.forEach((loan,index)=>{
+        const displayIndex = index + 1;
         const loanDiv = document.createElement("div");
         loanDiv.setAttribute('data-loan-id', loan.id);
         loanDiv.style.marginBottom = "25px";
@@ -184,7 +185,9 @@ async function loadBorrowerSummary(){
         const isCompleted = paidWeeks >= loan.weeks;
         const statusColor = isCompleted ? "#27ae60" : "#f39c12";
 
-        loanHeader.innerHTML = `<span style="color: #e74c3c;">L.ID: ${loan.id}</span> | <span style="color: #3498db;">B.N: ${loan.borrower}</span> | B.ID: ${loan.borrower_id} | <span style="color: #666; font-size: 0.9em;">${loan.start_date}</span> | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
+        console.log(`Display index ${displayIndex}: Loan ID ${loan.id}, Date: ${loan.start_date}`);
+
+        loanHeader.innerHTML = `<span style="color: #666; font-weight: normal;">${displayIndex}.</span> <span style="color: #e74c3c;">L.ID: ${loan.id}</span> | <span style="color: #3498db;">B.N: ${loan.borrower}</span> | B.ID: ${loan.borrower_id} | <span style="color: #666; font-size: 0.9em;">${loan.start_date}</span> | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
         loanDiv.appendChild(loanHeader);
 
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks).toFixed(2);
