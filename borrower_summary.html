@@ -160,18 +160,15 @@ async function loadBorrowerSummary(){
 
         const startDate = new Date(loan.start_date);
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
 
         for(let i=1;i<=loan.weeks;i++){
             const paidRecord = payments.find(p => p.loan_id === loan.id && p.week === i);
             const dueDate = new Date(startDate);
             dueDate.setDate(dueDate.getDate() + 7*i);
+            dueDate.setHours(0, 0, 0, 0); // Set to start of due date
 
-            const todayStart = new Date(today);
-            todayStart.setHours(0, 0, 0, 0);
-            const dueDateStart = new Date(dueDate);
-            dueDateStart.setHours(0, 0, 0, 0);
-
-            const isOverdue = !paidRecord && dueDateStart < todayStart;
+            const isOverdue = !paidRecord && dueDate < today;
             const statusClass = paidRecord ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
             const statusText = paidRecord ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
 
@@ -237,9 +234,10 @@ async function showInstallmentsDue(){
 
     const futureDate = new Date(futureDateStr);
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of today
+    futureDate.setHours(23, 59, 59, 999); // Set to end of selected date
 
-    // Allow today or future dates
-    if(futureDate < today.setHours(0,0,0,0)){
+    if(futureDate < today){
         alert("Please select today or a future date");
         return;
     }
@@ -266,6 +264,8 @@ async function showInstallmentsDue(){
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks);
         const startDate = new Date(loan.start_date);
         const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
 
         for(let week = paidWeeks + 1; week <= loan.weeks; week++){
             const dueDate = new Date(startDate);
@@ -274,8 +274,6 @@ async function showInstallmentsDue(){
             if(dueDate <= futureDate){
                 // Overdue: due date has passed (compared to today)
                 // Unpaid: due date is in the future (compared to today) but within selected date range
-                const todayStart = new Date(today);
-                todayStart.setHours(0, 0, 0, 0);
                 const dueDateStart = new Date(dueDate);
                 dueDateStart.setHours(0, 0, 0, 0);
 
