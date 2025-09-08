@@ -48,7 +48,6 @@ button:hover { background-color: #2980b9; }
       <label>Enter Borrower ID:</label>
       <input type="text" id="borrower-id-input" style="margin-left: 10px;">
       <button onclick="loadBorrowerSummary()">Search</button>
-      <button onclick="clearCacheAndReload()" style="background-color: #e74c3c; margin-left: 10px;">Clear Cache & Reload</button>
     </div>
     <div id="filter-section" style="display: none;">
       <label>Filter:</label>
@@ -80,22 +79,6 @@ const API_URL = "";
 
 function formatLKR(amount){
     return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
-}
-
-function clearCacheAndReload(){
-    // Clear local storage and session storage
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // Clear cache by adding timestamp to prevent caching
-    const links = document.querySelectorAll('link[rel="stylesheet"]');
-    links.forEach(link => {
-        const href = link.href;
-        link.href = href + (href.includes('?') ? '&' : '?') + 'v=' + Date.now();
-    });
-
-    // Reload the page
-    window.location.reload(true);
 }
 
 async function loadBorrowerSummary(){
@@ -163,23 +146,11 @@ async function loadBorrowerSummary(){
         loanDiv.style.padding = "15px";
 
         const loanHeader = document.createElement("h3");
-        const loanPayments = payments.filter(p => p.loan_id === loan.id);
-        const paidWeeks = loanPayments.length;
+        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
         const isCompleted = paidWeeks >= loan.weeks;
         const statusColor = isCompleted ? "#27ae60" : "#f39c12";
 
-        // Debug logging for loan 49
-        if(loan.id === 49) {
-            console.log(`Loan 49 Debug:`, {
-                loanId: loan.id,
-                weeks: loan.weeks,
-                paidWeeks: paidWeeks,
-                payments: loanPayments,
-                isCompleted: isCompleted
-            });
-        }
-
-        loanHeader.innerHTML = `<span style="color: ${statusColor};">${String(index+1).padStart(2,'0')}.</span> ${loan.borrower} | Loan ID: ${loan.id} | Borrower ID: ${loan.borrower_id} | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span> | <small style="color: #666;">(${paidWeeks}/${loan.weeks} paid)</small>`;
+        loanHeader.innerHTML = `L.ID: ${loan.id} | B.N: ${loan.borrower} | B.ID: ${loan.borrower_id} | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
         loanDiv.appendChild(loanHeader);
 
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks).toFixed(2);
@@ -302,15 +273,10 @@ async function showInstallmentsDue(){
             return;
         }
 
-    console.log("Fetching loans and payments...");
     const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
-
-    console.log(`Fetched ${loans.length} loans and ${payments.length} payments`);
-    console.log("Loans:", loans.slice(0, 5)); // Show first 5 loans
-    console.log("Payments:", payments.slice(0, 5)); // Show first 5 payments
 
     // More robust filtering with case-insensitive and trimmed comparison
     const borrowerLoans = loans.filter(l => {
