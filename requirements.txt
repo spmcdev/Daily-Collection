@@ -1,0 +1,4 @@
+supabase==2.3.0
+python-dotenv==1.0.0
+sqlmodel==0.0.14
+sqlalchemy==2.0.23
