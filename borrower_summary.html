@@ -55,11 +55,11 @@ button:hover { background-color: #2980b9; }
   </div>
 </div>
 
-<div class="section">
+<div class="section" id="installments-search-section" style="display: none;">
   <h2>Installments Due Search</h2>
   <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
     <div>
-      <label>Select Future Date:</label>
+      <label>Select Date:</label>
       <input type="date" id="future-date-input" style="margin-left: 10px;">
     </div>
     <button onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Due</button>
@@ -84,6 +84,9 @@ async function loadBorrowerSummary(){
         alert("Enter Borrower ID");
         return;
     }
+
+    // Show the installments search section when borrower ID is entered
+    document.getElementById("installments-search-section").style.display = "block";
 
     const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
@@ -163,7 +166,7 @@ async function loadBorrowerSummary(){
             const dueDate = new Date(startDate);
             dueDate.setDate(dueDate.getDate() + 7*i);
 
-            const isOverdue = !paidRecord && dueDate < today;
+            const isOverdue = !paidRecord && dueDate <= today;
             const statusClass = paidRecord ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
             const statusText = paidRecord ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
 
@@ -223,15 +226,16 @@ async function showInstallmentsDue(){
     }
 
     if(!futureDateStr){
-        alert("Select a future date");
+        alert("Select a date");
         return;
     }
 
     const futureDate = new Date(futureDateStr);
     const today = new Date();
 
-    if(futureDate <= today){
-        alert("Please select a future date");
+    // Allow today or future dates
+    if(futureDate < today.setHours(0,0,0,0)){
+        alert("Please select today or a future date");
         return;
     }
 
@@ -263,7 +267,7 @@ async function showInstallmentsDue(){
             dueDate.setDate(dueDate.getDate() + 7 * week);
 
             if(dueDate <= futureDate){
-                const isOverdue = dueDate < today;
+                const isOverdue = dueDate <= today;
                 installmentsData.push({
                     loanId: loan.id,
                     borrowerId: loan.borrower_id,
