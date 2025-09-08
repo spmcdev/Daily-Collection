@@ -107,6 +107,9 @@ async function loadBorrowerSummary(){
 
     let borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
 
+    // Sort loans by start date (latest first) - applied before filtering
+    borrowerLoans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+
     // Apply filter
     if(filterType === "completed"){
         borrowerLoans = borrowerLoans.filter(loan => {
@@ -120,7 +123,7 @@ async function loadBorrowerSummary(){
         });
     }
 
-    // Sort loans by start date (latest first) - applied after filtering
+    // Sort loans by start date (latest first) - applied after filtering to maintain order
     borrowerLoans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
     const container = document.getElementById("summary-container");
@@ -150,7 +153,7 @@ async function loadBorrowerSummary(){
         const isCompleted = paidWeeks >= loan.weeks;
         const statusColor = isCompleted ? "#27ae60" : "#f39c12";
 
-        loanHeader.innerHTML = `L.ID: ${loan.id} | B.N: ${loan.borrower} | B.ID: ${loan.borrower_id} | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
+        loanHeader.innerHTML = `<span style="color: #e74c3c;">L.ID: ${loan.id}</span> | <span style="color: #3498db;">B.N: ${loan.borrower}</span> | B.ID: ${loan.borrower_id} | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
         loanDiv.appendChild(loanHeader);
 
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks).toFixed(2);
