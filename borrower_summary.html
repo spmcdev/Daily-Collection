@@ -224,28 +224,31 @@ async function loadBorrowerSummary(){
 }
 
 async function showInstallmentsDue(){
-    const borrowerId = document.getElementById("borrower-id-input").value.trim();
-    const futureDateStr = document.getElementById("future-date-input").value;
+    try {
+        const borrowerId = document.getElementById("borrower-id-input").value.trim();
+        const futureDateStr = document.getElementById("future-date-input").value;
 
-    if(!borrowerId){
-        alert("Enter Borrower ID first");
-        return;
-    }
+        console.log("Show Installments Due called with:", { borrowerId, futureDateStr });
 
-    if(!futureDateStr){
-        alert("Select a date");
-        return;
-    }
+        if(!borrowerId){
+            alert("Enter Borrower ID first");
+            return;
+        }
 
-    const futureDate = new Date(futureDateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of today
-    futureDate.setHours(23, 59, 59, 999); // Set to end of selected date
+        if(!futureDateStr){
+            alert("Select a date");
+            return;
+        }
 
-    if(futureDate < today){
-        alert("Please select today or a future date");
-        return;
-    }
+        const futureDate = new Date(futureDateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        futureDate.setHours(23, 59, 59, 999); // Set to end of selected date
+
+        if(futureDate < today){
+            alert("Please select today or a future date");
+            return;
+        }
 
     const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
@@ -310,13 +313,19 @@ async function showInstallmentsDue(){
         }
     });
 
+    // Double-check that all installments belong to the requested borrower
+    const filteredInstallments = installmentsData.filter(item => item.borrowerId == borrowerId);
+
+    console.log("Total installments found:", installmentsData.length);
+    console.log("Filtered installments for borrower:", filteredInstallments.length);
+
     if(filteredInstallments.length === 0){
         container.innerHTML = `<p>No installments due up to the selected date for borrower ID "${borrowerId}".</p>`;
         return;
     }
 
     // Sort by due date
-    installmentsData.sort((a, b) => a.dueDate - b.dueDate);
+    filteredInstallments.sort((a, b) => a.dueDate - b.dueDate);
 
     let tableHTML = `
     <h3>Installments Due Up To ${futureDate.toLocaleDateString('en-US')}</h3>
@@ -333,12 +342,6 @@ async function showInstallmentsDue(){
     </tr>
     </thead>
     <tbody>`;
-
-    // Double-check that all installments belong to the requested borrower
-    const filteredInstallments = installmentsData.filter(item => item.borrowerId == borrowerId);
-
-    console.log("Total installments found:", installmentsData.length);
-    console.log("Filtered installments for borrower:", filteredInstallments.length);
 
     filteredInstallments.forEach(item => {
         const statusClass = item.isOverdue ? 'overdue' : 'unpaid';
@@ -366,6 +369,10 @@ async function showInstallmentsDue(){
     </div>`;
 
     container.innerHTML = tableHTML;
+    } catch (error) {
+        console.error("Error in showInstallmentsDue:", error);
+        container.innerHTML = `<p style="color: red;">Error loading installments: ${error.message}</p>`;
+    }
 }
 </script>
 </body>
