@@ -166,7 +166,12 @@ async function loadBorrowerSummary(){
             const dueDate = new Date(startDate);
             dueDate.setDate(dueDate.getDate() + 7*i);
 
-            const isOverdue = !paidRecord && dueDate <= today;
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+            const dueDateStart = new Date(dueDate);
+            dueDateStart.setHours(0, 0, 0, 0);
+
+            const isOverdue = !paidRecord && dueDateStart < todayStart;
             const statusClass = paidRecord ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
             const statusText = paidRecord ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
 
@@ -267,7 +272,14 @@ async function showInstallmentsDue(){
             dueDate.setDate(dueDate.getDate() + 7 * week);
 
             if(dueDate <= futureDate){
-                const isOverdue = dueDate <= today;
+                // Overdue: due date has passed (compared to today)
+                // Unpaid: due date is in the future (compared to today) but within selected date range
+                const todayStart = new Date(today);
+                todayStart.setHours(0, 0, 0, 0);
+                const dueDateStart = new Date(dueDate);
+                dueDateStart.setHours(0, 0, 0, 0);
+
+                const isOverdue = dueDateStart < todayStart;
                 installmentsData.push({
                     loanId: loan.id,
                     borrowerId: loan.borrower_id,
