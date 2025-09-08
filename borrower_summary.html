@@ -139,6 +139,7 @@ async function loadBorrowerSummary(){
 
     borrowerLoans.forEach((loan,index)=>{
         const loanDiv = document.createElement("div");
+        loanDiv.setAttribute('data-loan-id', loan.id);
         loanDiv.style.marginBottom = "25px";
         loanDiv.style.border = "1px solid #ddd";
         loanDiv.style.borderRadius = "8px";
@@ -447,19 +448,16 @@ function highlightMatchingInstallments() {
 
     // Highlight matching weeks in loan tables
     installments.forEach(installment => {
-        const loanRows = document.querySelectorAll('#summary-container table tbody tr');
-        loanRows.forEach(row => {
-            const weekCell = row.cells[0]; // Week column
-            const statusCell = row.cells[1]; // Status column
-
-            if (weekCell && statusCell && weekCell.textContent == installment.week) {
-                // Check if this row belongs to the same borrower
-                const borrowerCell = row.closest('div').querySelector('h3');
-                if (borrowerCell && borrowerCell.textContent.includes(installment.borrower)) {
+        const loanDiv = document.querySelector(`#summary-container div[data-loan-id="${installment.loanId}"]`);
+        if (loanDiv) {
+            const loanRows = loanDiv.querySelectorAll('table tbody tr');
+            loanRows.forEach(row => {
+                const weekCell = row.cells[0];
+                if (weekCell && weekCell.textContent == installment.week) {
                     row.classList.add('highlighted');
                 }
-            }
-        });
+            });
+        }
     });
 }
 </script>
