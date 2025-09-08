@@ -1,7 +1,8 @@
 const { createClient } = require('@supabase/supabase-js')
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
+// Staging database credentials
+const SUPABASE_URL = 'https://ilfzwscebfvvfcprownn.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsZnp3c2NlYmZ2dmZjcHJvd25uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczMDQ1MTcsImV4cCI6MjA3Mjg4MDUxN30.jzwe74ymANw5jE_WL2XHupS1GvbRU4muAUCgVAs9BFo'
 
 export default async function handler(req, res) {
   try {

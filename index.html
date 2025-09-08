@@ -457,6 +457,9 @@ async function exportToCSV(){
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
+    // Sort loans by loan ID in ascending order (01, 02, 03, etc.)
+    loans.sort((a, b) => a.id - b.id);
+
     let csvContent = "Loan ID,Borrower ID,Borrower,Amount,Start Date,Interest %,Weeks,Paid Weeks,Remaining Weeks,Total Paid,Remaining Amount,Weekly Installment,Next Due Date,Completion Status\n";
 
     loans.forEach(loan => {
