@@ -7,11 +7,9 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# Load staging environment variables
-load_dotenv('.env.staging')
-
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
+# Use hardcoded staging database credentials
+SUPABASE_URL = "https://bkiglesjdwgvomsyfxkc.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraWdsZXNqZHdndm9tc3lmeGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDk5NjAsImV4cCI6MjA3MjkyNTk2MH0.k89ZlaOQwlJjRux02JqGHLEizrhy7D9cVCXa8Cq9KgU"
 
 def add_sample_data_direct():
     """Add sample loans and payments using direct SQL"""
@@ -48,15 +46,18 @@ def add_sample_data_direct():
             {'borrower_id': 'L020', 'borrower': 'ධනුෂ්ක රත්නායක', 'amount': 52000.00, 'interest': 11.5, 'weeks': 19, 'start_date': '2025-04-01'}
         ]
 
-        # Insert loans using direct SQL
+        # Insert loans using standard Supabase client
         print("📝 Adding sample loans...")
         for loan in loans_data:
-            sql = f"""
-            INSERT INTO loans (borrower_id, borrower, amount, interest, weeks, start_date)
-            VALUES ('{loan['borrower_id']}', '{loan['borrower']}', {loan['amount']}, {loan['interest']}, {loan['weeks']}, '{loan['start_date']}')
-            """
             try:
-                result = supabase.rpc('exec_sql', {'sql': sql})
+                result = supabase.table('loans').insert({
+                    'borrower_id': loan['borrower_id'],
+                    'borrower': loan['borrower'],
+                    'amount': loan['amount'],
+                    'interest': loan['interest'],
+                    'weeks': loan['weeks'],
+                    'start_date': loan['start_date']
+                }).execute()
                 print(f"✅ Added loan {loan['borrower_id']}")
             except Exception as e:
                 print(f"⚠️  Error adding loan {loan['borrower_id']}: {e}")
@@ -71,19 +72,29 @@ def add_sample_data_direct():
             weeks = loan['weeks']
             weekly_payment = (amount * (1 + interest/100)) / weeks
 
-            # Add payments for first 10 weeks of each loan
-            for week in range(1, min(11, weeks + 1)):
-                payment_date = f"2025-01-{week:02d}"  # Simple date pattern
-                sql = f"""
-                INSERT INTO payments (loan_id, week, amount, payment_date)
-                SELECT id, {week}, {weekly_payment}, '{payment_date}'
-                FROM loans WHERE borrower_id = '{loan_id}'
-                """
-                try:
-                    result = supabase.rpc('exec_sql', {'sql': sql})
-                    payments_count += 1
-                except Exception as e:
-                    print(f"⚠️  Error adding payment for {loan_id} week {week}: {e}")
+            # First get the loan ID from the database
+            try:
+                loan_record = supabase.table('loans').select('id').eq('borrower_id', loan_id).execute()
+                if loan_record.data and len(loan_record.data) > 0:
+                    actual_loan_id = loan_record.data[0]['id']
+
+                    # Add payments for first 10 weeks of each loan
+                    for week in range(1, min(11, weeks + 1)):
+                        payment_date = f"2025-01-{week:02d}"  # Simple date pattern
+                        try:
+                            result = supabase.table('payments').insert({
+                                'loan_id': actual_loan_id,
+                                'week': week,
+                                'amount': round(weekly_payment, 2),
+                                'payment_date': payment_date
+                            }).execute()
+                            payments_count += 1
+                        except Exception as e:
+                            print(f"⚠️  Error adding payment for {loan_id} week {week}: {e}")
+                else:
+                    print(f"⚠️  Could not find loan record for {loan_id}")
+            except Exception as e:
+                print(f"⚠️  Error getting loan ID for {loan_id}: {e}")
 
         print("🎉 Sample data added successfully!")
         print(f"📊 Added {len(loans_data)} loans and {payments_count} payments")
