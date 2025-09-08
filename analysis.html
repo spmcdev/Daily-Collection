@@ -36,37 +36,73 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 
 <h1>Advanced Loan Analysis</h1>
 
-<div class="summary-boxes">
-  <div class="summary-box">
-    Total Loans
-    <p id="total-loans">LKR 0</p>
-  </div>
-  <div class="summary-box">
-    Total Received
-    <p id="total-received">LKR 0</p>
-  </div>
-  <div class="summary-box">
-    Outstanding
-    <p id="total-outstanding">LKR 0</p>
-  </div>
-</div>
 
 <div class="section">
   <h2>Profit & Loss Analysis</h2>
+
+  <!-- Earned Section -->
+  <h3 style="color: #27ae60; margin-top: 20px;">💰 Earned (Received)</h3>
   <div class="summary-boxes">
     <div class="summary-box" style="background: linear-gradient(135deg, #27ae60, #229954);">
-      Total Interest Earned
-      <p id="total-interest-earned">LKR 0</p>
+      Principal Received
+      <p id="principal-received">LKR 0</p>
     </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+      Interest Earned
+      <p id="interest-earned">LKR 0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #16a085, #119e7a);">
+      Total Earned
+      <p id="total-earned">LKR 0</p>
+    </div>
+  </div>
+
+  <!-- Remaining Section -->
+  <h3 style="color: #f39c12; margin-top: 30px;">⏳ Remaining (Outstanding)</h3>
+  <div class="summary-boxes">
     <div class="summary-box" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
-      Monthly Interest Rate
-      <p id="monthly-interest-rate">0%</p>
+      Principal Outstanding
+      <p id="principal-outstanding">LKR 0</p>
     </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+      Interest Outstanding
+      <p id="interest-outstanding">LKR 0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #d35400, #a04000);">
+      Total Outstanding
+      <p id="total-outstanding">LKR 0</p>
+    </div>
+  </div>
+
+  <!-- Expected Section -->
+  <h3 style="color: #9b59b6; margin-top: 30px;">🎯 Expected (Total Potential)</h3>
+  <div class="summary-boxes">
     <div class="summary-box" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
-      Annual Interest Rate
-      <p id="annual-interest-rate">0%</p>
+      Total Principal
+      <p id="total-principal">LKR 0</p>
     </div>
-    <div class="summary-box" style="background: linear-gradient(135deg, #1abc9c, #16a085);">
+    <div class="summary-box" style="background: linear-gradient(135deg, #8e44ad, #732d91);">
+      Total Interest Expected
+      <p id="total-interest-expected">LKR 0</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #732d91, #5b248f);">
+      Total Expected Amount
+      <p id="total-expected">LKR 0</p>
+    </div>
+  </div>
+
+  <!-- Summary Section -->
+  <h3 style="color: #34495e; margin-top: 30px;">📊 Summary & Rates</h3>
+  <div class="summary-boxes">
+    <div class="summary-box" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+      Average Interest Rate
+      <p id="avg-interest-rate">0%</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #2980b9, #1f4e79);">
+      Monthly Rate
+      <p id="monthly-rate">0%</p>
+    </div>
+    <div class="summary-box" style="background: linear-gradient(135deg, #1f4e79, #0f2a4a);">
       Profit on LKR 100,000
       <p id="profit-on-100k">LKR 0</p>
     </div>
@@ -166,32 +202,65 @@ async function loadSummary(){
   const paymentsRes = await fetch(`${API_URL}/api/payments`);
   const payments = await paymentsRes.json();
 
-  let totalLoans = 0;
-  let totalReceived = 0;
-  let totalInterestEarned = 0;
+  // Initialize all calculation variables
+  let totalPrincipal = 0;
+  let totalInterestExpected = 0;
+  let principalReceived = 0;
+  let interestEarned = 0;
+  let principalOutstanding = 0;
+  let interestOutstanding = 0;
 
   loans.forEach(loan => {
-    const totalAmount = loan.amount * (1 + loan.interest/100);
+    const loanPrincipal = loan.amount;
+    const loanInterest = loan.amount * (loan.interest / 100);
+    const totalLoanAmount = loanPrincipal + loanInterest;
     const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
-    const paidAmount = paidWeeks * (totalAmount / loan.weeks);
+    const paidAmount = paidWeeks * (totalLoanAmount / loan.weeks);
+    const paidPrincipal = loanPrincipal * (paidWeeks / loan.weeks);
+    const paidInterest = paidAmount - paidPrincipal;
 
-    totalLoans += totalAmount;
-    totalReceived += paidAmount;
-    totalInterestEarned += paidAmount - (loan.amount * paidWeeks / loan.weeks);
+    // Expected amounts
+    totalPrincipal += loanPrincipal;
+    totalInterestExpected += loanInterest;
+
+    // Earned amounts
+    principalReceived += paidPrincipal;
+    interestEarned += paidInterest;
+
+    // Outstanding amounts
+    principalOutstanding += loanPrincipal - paidPrincipal;
+    interestOutstanding += loanInterest - paidInterest;
   });
 
-  // Calculate profit analysis
+  // Calculate totals
+  const totalEarned = principalReceived + interestEarned;
+  const totalOutstanding = principalOutstanding + interestOutstanding;
+  const totalExpected = totalPrincipal + totalInterestExpected;
+
+  // Calculate rates
   const avgInterestRate = loans.length > 0 ? loans.reduce((sum, loan) => sum + loan.interest, 0) / loans.length : 0;
-  const monthlyInterestRate = avgInterestRate / 12;
-  const annualInterestRate = avgInterestRate;
+  const monthlyRate = avgInterestRate / 12;
   const profitOn100k = (100000 * avgInterestRate) / 100;
 
-  document.getElementById("total-loans").innerText = formatLKR(totalLoans);
-  document.getElementById("total-received").innerText = formatLKR(totalReceived);
-  document.getElementById("total-outstanding").innerText = formatLKR(totalLoans - totalReceived);
-  document.getElementById("total-interest-earned").innerText = formatLKR(totalInterestEarned);
-  document.getElementById("monthly-interest-rate").innerText = monthlyInterestRate.toFixed(2) + "%";
-  document.getElementById("annual-interest-rate").innerText = annualInterestRate.toFixed(2) + "%";
+  // Update all display elements
+  // Earned Section
+  document.getElementById("principal-received").innerText = formatLKR(principalReceived);
+  document.getElementById("interest-earned").innerText = formatLKR(interestEarned);
+  document.getElementById("total-earned").innerText = formatLKR(totalEarned);
+
+  // Remaining Section
+  document.getElementById("principal-outstanding").innerText = formatLKR(principalOutstanding);
+  document.getElementById("interest-outstanding").innerText = formatLKR(interestOutstanding);
+  document.getElementById("total-outstanding").innerText = formatLKR(totalOutstanding);
+
+  // Expected Section
+  document.getElementById("total-principal").innerText = formatLKR(totalPrincipal);
+  document.getElementById("total-interest-expected").innerText = formatLKR(totalInterestExpected);
+  document.getElementById("total-expected").innerText = formatLKR(totalExpected);
+
+  // Summary Section
+  document.getElementById("avg-interest-rate").innerText = avgInterestRate.toFixed(2) + "%";
+  document.getElementById("monthly-rate").innerText = monthlyRate.toFixed(2) + "%";
   document.getElementById("profit-on-100k").innerText = formatLKR(profitOn100k);
 
   return {loans, payments};
