@@ -57,6 +57,21 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
     </div>
   </div>
 
+  <!-- Mini Summary for Earned Section -->
+  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #27ae60;">
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;">
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Avg Rate:</strong><br><span id="earned-avg-rate" style="color: #27ae60;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Monthly:</strong><br><span id="earned-monthly-rate" style="color: #27ae60;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Profit/100k:</strong><br><span id="earned-profit-100k" style="color: #27ae60;">LKR 0</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Remaining Section -->
   <h3 style="color: #f39c12; margin-top: 30px;">⏳ Remaining (Outstanding)</h3>
   <div class="summary-boxes">
@@ -74,6 +89,21 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
     </div>
   </div>
 
+  <!-- Mini Summary for Remaining Section -->
+  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f39c12;">
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;">
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Avg Rate:</strong><br><span id="remaining-avg-rate" style="color: #f39c12;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Monthly:</strong><br><span id="remaining-monthly-rate" style="color: #f39c12;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Profit/100k:</strong><br><span id="remaining-profit-100k" style="color: #f39c12;">LKR 0</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Expected Section -->
   <h3 style="color: #9b59b6; margin-top: 30px;">🎯 Expected (Total Potential)</h3>
   <div class="summary-boxes">
@@ -88,6 +118,21 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
     <div class="summary-box" style="background: linear-gradient(135deg, #732d91, #5b248f);">
       Total Expected Amount
       <p id="total-expected">LKR 0</p>
+    </div>
+  </div>
+
+  <!-- Mini Summary for Expected Section -->
+  <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #9b59b6;">
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px;">
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Avg Rate:</strong><br><span id="expected-avg-rate" style="color: #9b59b6;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Monthly:</strong><br><span id="expected-monthly-rate" style="color: #9b59b6;">0%</span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        <strong>Profit/100k:</strong><br><span id="expected-profit-100k" style="color: #9b59b6;">LKR 0</span>
+      </div>
     </div>
   </div>
 
@@ -262,6 +307,19 @@ async function loadSummary(){
   document.getElementById("avg-interest-rate").innerText = avgInterestRate.toFixed(2) + "%";
   document.getElementById("monthly-rate").innerText = monthlyRate.toFixed(2) + "%";
   document.getElementById("profit-on-100k").innerText = formatLKR(profitOn100k);
+
+  // Mini summaries for each section
+  document.getElementById("earned-avg-rate").innerText = avgInterestRate.toFixed(2) + "%";
+  document.getElementById("earned-monthly-rate").innerText = monthlyRate.toFixed(2) + "%";
+  document.getElementById("earned-profit-100k").innerText = formatLKR(profitOn100k);
+
+  document.getElementById("remaining-avg-rate").innerText = avgInterestRate.toFixed(2) + "%";
+  document.getElementById("remaining-monthly-rate").innerText = monthlyRate.toFixed(2) + "%";
+  document.getElementById("remaining-profit-100k").innerText = formatLKR(profitOn100k);
+
+  document.getElementById("expected-avg-rate").innerText = avgInterestRate.toFixed(2) + "%";
+  document.getElementById("expected-monthly-rate").innerText = monthlyRate.toFixed(2) + "%";
+  document.getElementById("expected-profit-100k").innerText = formatLKR(profitOn100k);
 
   return {loans, payments};
 }

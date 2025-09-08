@@ -20,6 +20,7 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 .week-box { padding: 5px; border-radius: 5px; margin: 2px; display: inline-block; color: white; }
 .paid { background-color: #2ecc71; }
 .unpaid { background-color: #e74c3c; }
+.overdue { background-color: #e67e22; font-weight: bold; }
 input, button { padding: 8px; font-size: 16px; margin-top: 5px; }
 button { cursor: pointer; background-color: #3498db; color: white; border: none; border-radius: 5px; }
 button:hover { background-color: #2980b9; }
@@ -37,9 +38,33 @@ button:hover { background-color: #2980b9; }
 <h1>Borrower Loan Summary</h1>
 
 <div class="section">
-  <label>Enter Borrower ID:</label>
-  <input type="text" id="borrower-id-input">
-  <button onclick="loadBorrowerSummary()">Search</button>
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div>
+      <label>Enter Borrower ID:</label>
+      <input type="text" id="borrower-id-input" style="margin-left: 10px;">
+      <button onclick="loadBorrowerSummary()">Search</button>
+    </div>
+    <div>
+      <label>Filter:</label>
+      <select id="loan-filter" onchange="loadBorrowerSummary()" style="margin-left: 10px; padding: 8px;">
+        <option value="all">All Loans</option>
+        <option value="completed">Completed Loans</option>
+        <option value="outstanding">Outstanding Loans</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Installments Due Search</h2>
+  <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <div>
+      <label>Select Future Date:</label>
+      <input type="date" id="future-date-input" style="margin-left: 10px;">
+    </div>
+    <button onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Due</button>
+  </div>
+  <div id="installments-due-container" style="margin-top: 20px;"></div>
 </div>
 
 <div class="section" id="summary-container"></div>
@@ -53,6 +78,8 @@ function formatLKR(amount){
 
 async function loadBorrowerSummary(){
     const borrowerId = document.getElementById("borrower-id-input").value.trim();
+    const filterType = document.getElementById("loan-filter").value;
+
     if(!borrowerId){
         alert("Enter Borrower ID");
         return;
@@ -63,12 +90,30 @@ async function loadBorrowerSummary(){
     const paymentsRes = await fetch(`${API_URL}/api/payments`);
     const payments = await paymentsRes.json();
 
-    const borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
+    let borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
+
+    // Sort loans by start date (latest first)
+    borrowerLoans.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+
+    // Apply filter
+    if(filterType === "completed"){
+        borrowerLoans = borrowerLoans.filter(loan => {
+            const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+            return paidWeeks >= loan.weeks;
+        });
+    } else if(filterType === "outstanding"){
+        borrowerLoans = borrowerLoans.filter(loan => {
+            const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+            return paidWeeks < loan.weeks;
+        });
+    }
+
     const container = document.getElementById("summary-container");
     container.innerHTML = "";
 
     if(borrowerLoans.length === 0){
-        container.innerHTML = "<p>No loans found for this borrower.</p>";
+        const filterText = filterType === "all" ? "" : ` with filter "${filterType}"`;
+        container.innerHTML = `<p>No loans found for this borrower${filterText}.</p>`;
         return;
     }
 
@@ -80,9 +125,15 @@ async function loadBorrowerSummary(){
     borrowerLoans.forEach((loan,index)=>{
         const loanDiv = document.createElement("div");
         loanDiv.style.marginBottom = "25px";
+        loanDiv.style.border = "1px solid #ddd";
+        loanDiv.style.borderRadius = "8px";
+        loanDiv.style.padding = "15px";
 
-        const loanHeader = document.createElement("h2");
-        loanHeader.innerText = `${String(index+1).padStart(2,'0')}. Borrower: ${loan.borrower} | Borrower ID: ${loan.borrower_id}`;
+        const loanHeader = document.createElement("h3");
+        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const isCompleted = paidWeeks >= loan.weeks;
+        const statusColor = isCompleted ? "#27ae60" : "#f39c12";
+        loanHeader.innerHTML = `<span style="color: ${statusColor};">${String(index+1).padStart(2,'0')}.</span> ${loan.borrower} | ID: ${loan.borrower_id} | <span style="color: ${statusColor};">${isCompleted ? 'COMPLETED' : 'IN PROGRESS'}</span>`;
         loanDiv.appendChild(loanHeader);
 
         const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks).toFixed(2);
@@ -105,14 +156,20 @@ async function loadBorrowerSummary(){
         <tbody>`;
 
         const startDate = new Date(loan.start_date);
+        const today = new Date();
 
         for(let i=1;i<=loan.weeks;i++){
             const paidRecord = payments.find(p => p.loan_id === loan.id && p.week === i);
             const dueDate = new Date(startDate);
             dueDate.setDate(dueDate.getDate() + 7*i);
+
+            const isOverdue = !paidRecord && dueDate < today;
+            const statusClass = paidRecord ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
+            const statusText = paidRecord ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
+
             tableHTML += `<tr>
                 <td>${i}</td>
-                <td class="${paidRecord?'paid':'unpaid'}">${paidRecord?'Paid':'Unpaid'}</td>
+                <td class="${statusClass}">${statusText}</td>
                 <td>${formatLKR(weeklyInstallment)}</td>
                 <td>${dueDate.toLocaleDateString("si-LK")}</td>
             </tr>`;
@@ -125,23 +182,151 @@ async function loadBorrowerSummary(){
         const remaining = originalAmount - paidAmount;
         totalOutstanding += remaining;
 
-        tableHTML += `<p><strong>Principal Amount:</strong> ${formatLKR(principal)}</p>`;
-        tableHTML += `<p><strong>Interest Amount:</strong> ${formatLKR(interestAmount)} (${interestPercentage}%)</p>`;
-        tableHTML += `<p><strong>Total Paid:</strong> ${formatLKR(paidAmount)}</p>`;
-        tableHTML += `<p><strong>Remaining:</strong> ${formatLKR(remaining)}</p>`;
+        const summaryDiv = document.createElement("div");
+        summaryDiv.style.display = "flex";
+        summaryDiv.style.justifyContent = "space-between";
+        summaryDiv.style.flexWrap = "wrap";
+        summaryDiv.style.marginTop = "10px";
+        summaryDiv.style.padding = "10px";
+        summaryDiv.style.backgroundColor = "#f8f9fa";
+        summaryDiv.style.borderRadius = "5px";
+
+        summaryDiv.innerHTML = `
+            <div><strong>Principal:</strong> ${formatLKR(principal)}</div>
+            <div><strong>Interest:</strong> ${formatLKR(interestAmount)} (${interestPercentage}%)</div>
+            <div><strong>Paid:</strong> ${formatLKR(paidAmount)}</div>
+            <div><strong>Remaining:</strong> ${formatLKR(remaining)}</div>
+        `;
 
         loanDiv.innerHTML += tableHTML;
+        loanDiv.appendChild(summaryDiv);
         container.appendChild(loanDiv);
     });
 
     const totalsHTML = `
     <div class="summary-totals">
-      <div><h3>Total Principal Across Loans</h3><p>${formatLKR(totalPrincipal)}</p></div>
-      <div><h3>Total Interest Across Loans</h3><p>${formatLKR(totalInterest)}</p></div>
-      <div><h3>Total Paid Across Loans</h3><p>${formatLKR(totalPaidAll)}</p></div>
-      <div><h3>Total Outstanding Across Loans</h3><p>${formatLKR(totalOutstanding)}</p></div>
+      <div><h3>Total Principal</h3><p>${formatLKR(totalPrincipal)}</p></div>
+      <div><h3>Total Interest</h3><p>${formatLKR(totalInterest)}</p></div>
+      <div><h3>Total Paid</h3><p>${formatLKR(totalPaidAll)}</p></div>
+      <div><h3>Total Outstanding</h3><p>${formatLKR(totalOutstanding)}</p></div>
     </div>`;
     container.innerHTML += totalsHTML;
+}
+
+async function showInstallmentsDue(){
+    const borrowerId = document.getElementById("borrower-id-input").value.trim();
+    const futureDateStr = document.getElementById("future-date-input").value;
+
+    if(!borrowerId){
+        alert("Enter Borrower ID first");
+        return;
+    }
+
+    if(!futureDateStr){
+        alert("Select a future date");
+        return;
+    }
+
+    const futureDate = new Date(futureDateStr);
+    const today = new Date();
+
+    if(futureDate <= today){
+        alert("Please select a future date");
+        return;
+    }
+
+    const loansRes = await fetch(`${API_URL}/api/loans`);
+    const loans = await loansRes.json();
+    const paymentsRes = await fetch(`${API_URL}/api/payments`);
+    const payments = await paymentsRes.json();
+
+    const borrowerLoans = loans.filter(l => l.borrower_id == borrowerId);
+
+    const container = document.getElementById("installments-due-container");
+    container.innerHTML = "";
+
+    if(borrowerLoans.length === 0){
+        container.innerHTML = "<p>No loans found for this borrower.</p>";
+        return;
+    }
+
+    let totalDue = 0;
+    let installmentsData = [];
+
+    borrowerLoans.forEach(loan => {
+        const weeklyInstallment = (loan.amount*(1+loan.interest/100)/loan.weeks);
+        const startDate = new Date(loan.start_date);
+        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+
+        for(let week = paidWeeks + 1; week <= loan.weeks; week++){
+            const dueDate = new Date(startDate);
+            dueDate.setDate(dueDate.getDate() + 7 * week);
+
+            if(dueDate <= futureDate){
+                const isOverdue = dueDate < today;
+                installmentsData.push({
+                    loanId: loan.id,
+                    borrowerId: loan.borrower_id,
+                    borrower: loan.borrower,
+                    week: week,
+                    amount: weeklyInstallment,
+                    dueDate: dueDate,
+                    isOverdue: isOverdue,
+                    paidWeeks: paidWeeks,
+                    totalWeeks: loan.weeks
+                });
+                totalDue += weeklyInstallment;
+            }
+        }
+    });
+
+    if(installmentsData.length === 0){
+        container.innerHTML = "<p>No installments due up to the selected date.</p>";
+        return;
+    }
+
+    // Sort by due date
+    installmentsData.sort((a, b) => a.dueDate - b.dueDate);
+
+    let tableHTML = `
+    <h3>Installments Due Up To ${futureDate.toLocaleDateString('en-US')}</h3>
+    <table>
+    <thead>
+    <tr>
+        <th>Loan ID</th>
+        <th>Borrower</th>
+        <th>Week</th>
+        <th>Amount</th>
+        <th>Due Date</th>
+        <th>Status</th>
+        <th>Progress</th>
+    </tr>
+    </thead>
+    <tbody>`;
+
+    installmentsData.forEach(item => {
+        const statusClass = item.isOverdue ? 'overdue' : 'unpaid';
+        const statusText = item.isOverdue ? 'OVERDUE' : 'Due';
+        const progressText = `${item.paidWeeks}/${item.totalWeeks} weeks paid`;
+
+        tableHTML += `<tr>
+            <td>${item.loanId}</td>
+            <td>${item.borrower}</td>
+            <td>${item.week}</td>
+            <td>${formatLKR(item.amount.toFixed(2))}</td>
+            <td>${item.dueDate.toLocaleDateString("si-LK")}</td>
+            <td class="${statusClass}">${statusText}</td>
+            <td>${progressText}</td>
+        </tr>`;
+    });
+
+    tableHTML += "</tbody></table>";
+    tableHTML += `<div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px; text-align: center;">
+        <h3 style="color: #27ae60; margin: 0;">Total Amount Due: ${formatLKR(totalDue.toFixed(2))}</h3>
+        <p style="margin: 5px 0 0 0; color: #666;">${installmentsData.length} installments due</p>
+    </div>`;
+
+    container.innerHTML = tableHTML;
 }
 </script>
 </body>
