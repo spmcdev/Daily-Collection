@@ -168,9 +168,11 @@ async function loadBorrowerSummary(){
             dueDate.setDate(dueDate.getDate() + 7*i);
             dueDate.setHours(0, 0, 0, 0); // Set to start of due date
 
-            const isOverdue = !paidRecord && dueDate < today;
-            const statusClass = paidRecord ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
-            const statusText = paidRecord ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
+            // Check if payment exists for this week (regardless of exact date)
+            const hasPaymentForWeek = payments.some(p => p.loan_id === loan.id && p.week === i);
+            const isOverdue = !hasPaymentForWeek && dueDate < today;
+            const statusClass = hasPaymentForWeek ? 'paid' : (isOverdue ? 'overdue' : 'unpaid');
+            const statusText = hasPaymentForWeek ? 'Paid' : (isOverdue ? 'Overdue' : 'Unpaid');
 
             tableHTML += `<tr>
                 <td>${i}</td>
@@ -272,12 +274,12 @@ async function showInstallmentsDue(){
             dueDate.setDate(dueDate.getDate() + 7 * week);
 
             if(dueDate <= futureDate){
-                // Overdue: due date has passed (compared to today)
-                // Unpaid: due date is in the future (compared to today) but within selected date range
+                // Check if payment exists for this specific week
+                const hasPaymentForWeek = payments.some(p => p.loan_id === loan.id && p.week === week);
                 const dueDateStart = new Date(dueDate);
                 dueDateStart.setHours(0, 0, 0, 0);
 
-                const isOverdue = dueDateStart < todayStart;
+                const isOverdue = !hasPaymentForWeek && dueDateStart < todayStart;
                 installmentsData.push({
                     loanId: loan.id,
                     borrowerId: loan.borrower_id,
