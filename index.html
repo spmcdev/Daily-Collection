@@ -179,6 +179,11 @@
    <a href="/borrower_summary.html">Borrower Summary</a>
  </nav>
 
+<!-- Environment Indicator Banner -->
+<div id="env-banner" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; text-align: center; padding: 8px 15px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+ 🚧 DEMO ENVIRONMENT - Testing Only 🚧
+</div>
+
 <h1>Dashboard</h1>
 <div class="dashboard-container">
   <div class="dashboard-card">
@@ -504,8 +509,25 @@ function initializeSearch(){
     });
 }
 
+// Environment detection and banner display
+function showEnvironmentBanner(){
+    const hostname = window.location.hostname;
+    const banner = document.getElementById('env-banner');
+
+    // Show banner on staging/preview environments
+    if (hostname.includes('staging') || hostname.includes('preview') || hostname.includes('git-') || hostname.includes('vercel-preview')) {
+        banner.style.display = 'block';
+        banner.innerHTML = '🚧 DEMO ENVIRONMENT - Testing Only 🚧<br><small>This is a staging site. Your real data is safe on the production site.</small>';
+    }
+    // Hide banner on production (optional - you can remove this if you want no banner on production)
+    else {
+        banner.style.display = 'none';
+    }
+}
+
 // Call both on load
 window.onload = function(){
+    showEnvironmentBanner();
     loadDashboard();
     loadLoans();
 };
