@@ -200,15 +200,49 @@ function performSearch(){
     // Load and filter data
     loadAllBorrowersHorizontal(searchTerm);
 
-    // Update search results info
+    // Calculate enhanced search results
     const term = searchTerm.toLowerCase().trim();
-    const filteredCount = allLoans.filter(loan =>
+    const filteredLoans = allLoans.filter(loan =>
         (loan.borrower_id && loan.borrower_id.toLowerCase().includes(term)) ||
         (loan.borrower && loan.borrower.toLowerCase().includes(term))
-    ).length;
+    );
 
-    resultsDiv.innerHTML = `Found ${filteredCount} loan(s) matching "${searchTerm}"`;
-    resultsDiv.style.color = filteredCount > 0 ? '#27ae60' : '#e74c3c';
+    // Calculate overdue payments for filtered loans
+    let totalOverduePayments = 0;
+    filteredLoans.forEach(loan => {
+        const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+        const overdueWeeks = Math.max(0, paidWeeks - loan.weeks);
+        totalOverduePayments += overdueWeeks;
+    });
+
+    // Check if due date is set and calculate due payments
+    const dueDateInput = document.getElementById('check-date').value;
+    let duePaymentsCount = 0;
+    if (dueDateInput) {
+        const targetDate = new Date(dueDateInput);
+        filteredLoans.forEach(loan => {
+            const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+            for(let i = paidWeeks + 1; i <= loan.weeks; i++){
+                const nextDue = new Date(loan.start_date);
+                nextDue.setDate(nextDue.getDate() + 7 * i);
+                if(nextDue <= targetDate){
+                    duePaymentsCount++;
+                }
+            }
+        });
+    }
+
+    // Build enhanced results message
+    let resultsMessage = `Found ${filteredLoans.length} loan(s) matching "${searchTerm}"`;
+    if (totalOverduePayments > 0) {
+        resultsMessage += ` • ${totalOverduePayments} overdue payment(s)`;
+    }
+    if (dueDateInput && duePaymentsCount > 0) {
+        resultsMessage += ` • ${duePaymentsCount} due by ${new Date(dueDateInput).toLocaleDateString('en-US')}`;
+    }
+
+    resultsDiv.innerHTML = resultsMessage;
+    resultsDiv.style.color = filteredLoans.length > 0 ? '#27ae60' : '#e74c3c';
 
     // Refresh due table to update highlighting
     if (document.querySelector("#due-table tbody").children.length > 0) {
@@ -487,7 +521,7 @@ async function undoPayment(paymentId, button = null){
                     button.innerHTML = 'Undo';
                     button.disabled = false;
                     button.classList.remove('loading');
-                }, 300); // Reduced delay from 1000ms to 300ms
+                }, 150); // Further reduced delay from 300ms to 150ms
             }
         } else {
             alert("Failed to undo payment.");
@@ -845,8 +879,14 @@ async function checkDueByDate(){
         tbody.appendChild(trTotal);
     } else {
         const trEmpty = document.createElement("tr");
-        trEmpty.innerHTML = '<td colspan="6" style="text-align: center; color: #27ae60;"><strong>No payments due by selected date! 🎉</strong></td>';
+        trEmpty.innerHTML = '<td colspan="7" style="text-align: center; color: #27ae60;"><strong>No payments due by selected date! 🎉</strong></td>';
         tbody.appendChild(trEmpty);
+    }
+
+    // Update search results if there's an active search
+    const activeSearchTerm = document.getElementById('search-input').value.trim();
+    if (activeSearchTerm) {
+        performSearch();
     }
 }
 
