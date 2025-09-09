@@ -7,17 +7,25 @@ function validatePaymentData(data) {
     }
   }
 
-  if (!Number.isInteger(data.loan_id) || data.loan_id <= 0) {
+  // Convert string values to numbers if needed
+  const loanId = typeof data.loan_id === 'string' ? parseInt(data.loan_id) : data.loan_id;
+  const week = typeof data.week === 'string' ? parseInt(data.week) : data.week;
+  const amount = typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount;
+
+  if (!Number.isInteger(loanId) || loanId <= 0) {
     throw new Error('Loan ID must be a positive integer');
   }
 
-  if (!Number.isInteger(data.week) || data.week <= 0) {
+  if (!Number.isInteger(week) || week <= 0) {
     throw new Error('Week must be a positive integer');
   }
 
-  if (typeof data.amount !== 'number' || data.amount <= 0) {
+  if (isNaN(amount) || amount <= 0) {
     throw new Error('Amount must be a positive number');
   }
+
+  // Return validated data
+  return { loan_id: loanId, week: week, amount: amount };
 }
 
 const { createClient } = require('@supabase/supabase-js')
@@ -44,10 +52,8 @@ export default async function handler(req, res) {
       res.status(200).json(data)
 
     } else if (req.method === 'POST') {
-      // Validate input data
-      validatePaymentData(req.body);
-
-      const paymentData = req.body;
+      // Validate input data and get cleaned data
+      const paymentData = validatePaymentData(req.body);
 
       // Check if payment already exists for this loan_id and week
       const { data: existingPayment, error: checkError } = await supabase
