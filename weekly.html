@@ -211,25 +211,33 @@ function performSearch(){
     let totalOverduePayments = 0;
     filteredLoans.forEach(loan => {
         const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
-        const overdueWeeks = Math.max(0, paidWeeks - loan.weeks);
+        // Overdue occurs when borrower hasn't paid all required weeks
+        const overdueWeeks = Math.max(0, loan.weeks - paidWeeks);
         totalOverduePayments += overdueWeeks;
+        console.log(`Loan ${loan.id}: paidWeeks=${paidWeeks}, totalWeeks=${loan.weeks}, overdueWeeks=${overdueWeeks}`);
     });
+    console.log(`Total overdue payments for ${filteredLoans.length} loans: ${totalOverduePayments}`);
 
     // Check if due date is set and calculate due payments
     const dueDateInput = document.getElementById('check-date').value;
     let duePaymentsCount = 0;
     if (dueDateInput) {
         const targetDate = new Date(dueDateInput);
+        console.log(`Checking due payments for date: ${targetDate.toDateString()}`);
         filteredLoans.forEach(loan => {
             const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+            console.log(`Loan ${loan.id}: paidWeeks=${paidWeeks}, totalWeeks=${loan.weeks}`);
             for(let i = paidWeeks + 1; i <= loan.weeks; i++){
                 const nextDue = new Date(loan.start_date);
                 nextDue.setDate(nextDue.getDate() + 7 * i);
+                console.log(`  Week ${i} due date: ${nextDue.toDateString()}`);
                 if(nextDue <= targetDate){
                     duePaymentsCount++;
+                    console.log(`  -> Due payment found for week ${i}`);
                 }
             }
         });
+        console.log(`Total due payments by selected date: ${duePaymentsCount}`);
     }
 
     // Build enhanced results message
