@@ -45,7 +45,7 @@ button:hover { background-color: #2980b9; }
 <div class="section" id="summary-container"></div>
 
 <script>
-const API_URL = "";
+const API_URL = window.location.origin;
 
 function formatLKR(amount){
     return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
