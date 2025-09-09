@@ -142,7 +142,7 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 </div>
 
 <div id="check-container">
-  <input type="date" id="check-date">
+  <input type="date" id="check-date" onchange="checkDueByDate()">
   <button onclick="checkDueByDate()">Check Due By Date</button>
   <button onclick="clearDueTable()" class="clear-date-btn">Clear</button>
 </div>
@@ -255,6 +255,11 @@ function performSearch(){
     // Update highlighting in due table if it exists
     if (document.querySelector("#due-table tbody").children.length > 0) {
         updateSearchHighlighting(term);
+        // Also refresh due table to show updated counts for searched borrowers
+        const dueDateInput = document.getElementById('check-date').value;
+        if (dueDateInput) {
+            checkDueByDate();
+        }
     }
 }
 
@@ -268,6 +273,12 @@ function clearSearch(){
     tableRows.forEach(row => {
         row.classList.remove('search-highlight');
     });
+
+    // Clear due table if date is set (to show all loans again)
+    const dueDateInput = document.getElementById('check-date').value;
+    if (dueDateInput) {
+        checkDueByDate();
+    }
 }
 
 function handleSearch(event){
@@ -821,6 +832,12 @@ function clearDueTable(){
     document.getElementById("check-date").value = "";
     const tbody = document.querySelector("#due-table tbody");
     tbody.innerHTML = "";
+
+    // Refresh search results to remove due date information
+    const searchTerm = document.getElementById('search-input').value.trim();
+    if (searchTerm) {
+        performSearch();
+    }
 }
 
 // Check due installments by selected date and show total
@@ -832,13 +849,26 @@ async function checkDueByDate(){
     const loans = allLoans;
     const payments = allPayments;
 
+    // Get current search term to filter results
+    const currentSearchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+
     const tbody = document.querySelector("#due-table tbody");
     tbody.innerHTML = "";
 
     let grandTotal = 0;
     let dueInstallments = [];
 
-    loans.forEach(loan => {
+    // Filter loans based on search term if one exists
+    let loansToCheck = loans;
+    if (currentSearchTerm.trim() !== '') {
+        loansToCheck = loans.filter(loan =>
+            (loan.borrower_id && loan.borrower_id.toLowerCase().includes(currentSearchTerm)) ||
+            (loan.borrower && loan.borrower.toLowerCase().includes(currentSearchTerm)) ||
+            (loan.id && loan.id.toString().includes(currentSearchTerm))
+        );
+    }
+
+    loansToCheck.forEach(loan => {
         const weeklyAmount = loan.amount * (1 + loan.interest/100) / loan.weeks;
         const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
 
