@@ -19,6 +19,8 @@ th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #ddd; 
 th { background-color: #3498db; color: white; }
 tbody tr:nth-child(even) { background-color: #f9f9f9; }
 tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
+tbody tr.search-highlight { background-color: #fff3cd !important; border-left: 4px solid #f39c12; }
+tbody tr.search-highlight:hover { background-color: #ffeaa7 !important; }
 
 .week-box { padding: 5px; border-radius: 5px; margin: 2px; cursor: pointer; display: inline-block; position: relative; }
 .week-box.loading { opacity: 0.7; cursor: not-allowed; }
@@ -99,6 +101,15 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
     background-color: #7f8c8d;
 }
 
+.clear-date-btn {
+    background-color: #95a5a6;
+    margin-left: 10px;
+}
+
+.clear-date-btn:hover {
+    background-color: #7f8c8d;
+}
+
 .search-results {
     margin-top: 10px;
     font-size: 14px;
@@ -133,6 +144,7 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 <div id="check-container">
   <input type="date" id="check-date">
   <button onclick="checkDueByDate()">Check Due By Date</button>
+  <button onclick="clearDueTable()" class="clear-date-btn">Clear</button>
 </div>
 
 <div class="section">
@@ -140,6 +152,7 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
   <table id="due-table">
     <thead>
       <tr>
+        <th>Loan ID</th>
         <th>Borrower ID</th>
         <th>Borrower</th>
         <th>Loan Amount</th>
@@ -196,12 +209,22 @@ function performSearch(){
 
     resultsDiv.innerHTML = `Found ${filteredCount} loan(s) matching "${searchTerm}"`;
     resultsDiv.style.color = filteredCount > 0 ? '#27ae60' : '#e74c3c';
+
+    // Refresh due table to update highlighting
+    if (document.querySelector("#due-table tbody").children.length > 0) {
+        checkDueByDate();
+    }
 }
 
 function clearSearch(){
     document.getElementById('search-input').value = '';
     document.getElementById('search-results').innerHTML = '';
     loadAllBorrowersHorizontal(); // Load all loans
+
+    // Refresh due table to remove highlighting
+    if (document.querySelector("#due-table tbody").children.length > 0) {
+        checkDueByDate();
+    }
 }
 
 function handleSearch(event){
@@ -464,7 +487,7 @@ async function undoPayment(paymentId, button = null){
                     button.innerHTML = 'Undo';
                     button.disabled = false;
                     button.classList.remove('loading');
-                }, 1000);
+                }, 300); // Reduced delay from 1000ms to 300ms
             }
         } else {
             alert("Failed to undo payment.");
@@ -726,6 +749,13 @@ async function undoPaymentFromTable(paymentId, loanId, week){
     }
 }
 
+// Clear the due table
+function clearDueTable(){
+    document.getElementById("check-date").value = "";
+    const tbody = document.querySelector("#due-table tbody");
+    tbody.innerHTML = "";
+}
+
 // Check due installments by selected date and show total
 async function checkDueByDate(){
     const dateInput = document.getElementById("check-date").value;
@@ -767,13 +797,28 @@ async function checkDueByDate(){
     // Sort by due date
     dueInstallments.sort((a, b) => a.dueDate - b.dueDate);
 
+    // Get current search term
+    const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+
     // Display installments with action buttons
     dueInstallments.forEach(installment => {
         const tr = document.createElement("tr");
         const existingPayment = payments.find(p => p.loan_id === installment.loanId && p.week === installment.week);
         const isPaid = !!existingPayment;
 
+        // Check if this installment matches the search term
+        const matchesSearch = searchTerm === '' ||
+            installment.borrowerId.toLowerCase().includes(searchTerm) ||
+            installment.borrower.toLowerCase().includes(searchTerm) ||
+            installment.loanId.toString().includes(searchTerm);
+
+        // Add highlight class if it matches search
+        if (matchesSearch && searchTerm !== '') {
+            tr.classList.add('search-highlight');
+        }
+
         tr.innerHTML = `
+            <td>${installment.loanId}</td>
             <td>${installment.borrowerId}</td>
             <td>${installment.borrower}</td>
             <td>${formatLKR(installment.loanAmount)}</td>
