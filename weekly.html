@@ -244,9 +244,9 @@ function performSearch(){
     resultsDiv.innerHTML = resultsMessage;
     resultsDiv.style.color = filteredLoans.length > 0 ? '#27ae60' : '#e74c3c';
 
-    // Refresh due table to update highlighting
+    // Update highlighting in due table if it exists
     if (document.querySelector("#due-table tbody").children.length > 0) {
-        checkDueByDate();
+        updateSearchHighlighting(term);
     }
 }
 
@@ -255,16 +255,41 @@ function clearSearch(){
     document.getElementById('search-results').innerHTML = '';
     loadAllBorrowersHorizontal(); // Load all loans
 
-    // Refresh due table to remove highlighting
-    if (document.querySelector("#due-table tbody").children.length > 0) {
-        checkDueByDate();
-    }
+    // Remove highlighting from due table
+    const tableRows = document.querySelectorAll('#due-table tbody tr');
+    tableRows.forEach(row => {
+        row.classList.remove('search-highlight');
+    });
 }
 
 function handleSearch(event){
     if (event.key === 'Enter') {
         performSearch();
     }
+}
+
+// Update highlighting without triggering new search
+function updateSearchHighlighting(searchTerm){
+    const tableRows = document.querySelectorAll('#due-table tbody tr');
+
+    tableRows.forEach(row => {
+        // Skip total/empty rows
+        if (row.cells.length < 7) return;
+
+        const borrowerId = row.cells[1].textContent.toLowerCase();
+        const borrowerName = row.cells[2].textContent.toLowerCase();
+        const loanId = row.cells[0].textContent.toLowerCase();
+
+        const matches = borrowerId.includes(searchTerm) ||
+                        borrowerName.includes(searchTerm) ||
+                        loanId.includes(searchTerm);
+
+        if (matches && searchTerm.trim() !== '') {
+            row.classList.add('search-highlight');
+        } else {
+            row.classList.remove('search-highlight');
+        }
+    });
 }
 
 // Load borrowers with weekly boxes
@@ -883,10 +908,10 @@ async function checkDueByDate(){
         tbody.appendChild(trEmpty);
     }
 
-    // Update search results if there's an active search
+    // Update highlighting if there's an active search (without triggering new search)
     const activeSearchTerm = document.getElementById('search-input').value.trim();
     if (activeSearchTerm) {
-        performSearch();
+        updateSearchHighlighting(activeSearchTerm.toLowerCase());
     }
 }
 
