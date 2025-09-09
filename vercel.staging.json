@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
+  "framework": null,
+  "routes": [
+    {
+      "src": "/api/loans",
+      "dest": "/api/loans.js"
+    },
+    {
+      "src": "/api/loans/(.*)",
+      "dest": "/api/loans.js"
+    },
+    {
+      "src": "/api/payments",
+      "dest": "/api/payments.js"
+    },
+    {
+      "src": "/api/payments/(.*)",
+      "dest": "/api/payments.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "SUPABASE_URL": "https://bkiglesjdwgvomsyfxkc.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraWdsZXNqZHdndm9tc3lmeGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDk5NjAsImV4cCI6MjA3MjkyNTk2MH0.k89ZlaOQwlJjRux02JqGHLEizrhy7D9cVCXa8Cq9KgU",
+    "NODE_ENV": "staging"
+  }
+}
