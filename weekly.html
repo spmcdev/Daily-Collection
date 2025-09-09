@@ -296,15 +296,31 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                         box.className = 'week-box paid';
                         box.onclick = null;
                         box.style.pointerEvents = 'none';
-                        // Remove any existing button, then add undo button for paid
-                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '') + `<br><button class="undo-btn" style="display:none" onclick="undoPlaceholder(${loanId}, ${week})">Undo</button>`;
+                        // Restore proper content with undo button
+                        const loan = allLoans.find(l => l.id === loanId);
+                        if (loan) {
+                            const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
+                            const startDate = new Date(loan.start_date);
+                            const dueDate = new Date(startDate);
+                            dueDate.setDate(dueDate.getDate() + 7 * week);
+                            const formattedDate = dueDate.toLocaleDateString("si-LK");
+                            box.innerHTML = `${formattedDate}<br>${formatLKR(weeklyAmount)}<br><button class="undo-btn" onclick="undoPayment(${paymentId})">Undo</button>`;
+                        }
                     } else if (status === 'unpaid') {
                         box.className = 'week-box unpaid';
-                        box.innerHTML = box.innerHTML.replace(/<br><button.*?<\/button>/, '');
-                        box.style.pointerEvents = 'auto';
-                        // Re-enable click
-                        const amount = box.innerHTML.split('<br>')[1].split('LKR ')[1];
-                        box.onclick = () => markPaidBackend(loanId, week, amount);
+                        // Restore proper content without undo button
+                        const loan = allLoans.find(l => l.id === loanId);
+                        if (loan) {
+                            const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
+                            const startDate = new Date(loan.start_date);
+                            const dueDate = new Date(startDate);
+                            dueDate.setDate(dueDate.getDate() + 7 * week);
+                            const formattedDate = dueDate.toLocaleDateString("si-LK");
+                            box.innerHTML = `${formattedDate}<br>${formatLKR(weeklyAmount)}`;
+                            box.style.pointerEvents = 'auto';
+                            // Re-enable click
+                            box.onclick = () => markPaidBackend(loanId, week, weeklyAmount);
+                        }
                     }
                 }
             });
@@ -363,10 +379,11 @@ async function markPaidBackend(loanId, week, amount){
         // Revert UI to unpaid
         updatePaymentUI(loanId, week, 'unpaid');
     } finally {
-        // Re-enable the week box
+        // Re-enable the week box and restore proper content
         if (weekBox) {
             weekBox.style.pointerEvents = 'auto';
             weekBox.classList.remove('loading');
+            // The updatePaymentUI function should have already restored the proper content
         }
     }
 }
@@ -420,19 +437,25 @@ async function undoPayment(paymentId, button = null){
             if (document.querySelector("#due-table tbody").children.length > 0) {
                 checkDueByDate();
             }
+            // Success - keep button as "Undone" briefly then restore
             if(button){
-                button.innerHTML = 'Undone';
+                setTimeout(() => {
+                    button.innerHTML = 'Undo';
+                    button.disabled = false;
+                    button.classList.remove('loading');
+                }, 1000);
             }
         } else {
             alert("Failed to undo payment.");
-            if(button){
-                button.disabled = false;
-                button.innerHTML = 'Undo';
-                button.classList.remove('loading');
-            }
             // Revert UI to paid
             if(loanId && week){
                 updatePaymentUI(loanId, week, 'paid', paymentId);
+            }
+            // Restore button state
+            if(button){
+                button.innerHTML = 'Undo';
+                button.disabled = false;
+                button.classList.remove('loading');
             }
         }
     } catch(error) {
@@ -440,6 +463,12 @@ async function undoPayment(paymentId, button = null){
         // Revert UI to paid
         if(loanId && week){
             updatePaymentUI(loanId, week, 'paid', paymentId);
+        }
+        // Restore button state
+        if(button){
+            button.innerHTML = 'Undo';
+            button.disabled = false;
+            button.classList.remove('loading');
         }
     } finally {
         // Re-enable the week box
