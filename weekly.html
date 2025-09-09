@@ -263,7 +263,7 @@ async function loadAllBorrowersHorizontal(searchTerm = ''){
             if(!paidRecord){
                 weekDiv.onclick = () => markPaidBackend(loan.id, i, weeklyInstallment);
             } else {
-                weekDiv.innerHTML += `<br><button class="undo-btn" style="display:none" onclick="undoPayment(${paidRecord.id})">Undo</button>`;
+                weekDiv.onclick = () => undoPaymentFromBox(paidRecord.id, loan.id, i);
             }
 
             weeksDiv.appendChild(weekDiv);
@@ -294,21 +294,10 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                 if (index + 1 === week) {
                     if (status === 'paid') {
                         box.className = 'week-box paid';
-                        box.onclick = null;
-                        box.style.pointerEvents = 'none';
-                        // Restore proper content with undo button
-                        const loan = allLoans.find(l => l.id === loanId);
-                        if (loan) {
-                            const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
-                            const startDate = new Date(loan.start_date);
-                            const dueDate = new Date(startDate);
-                            dueDate.setDate(dueDate.getDate() + 7 * week);
-                            const formattedDate = dueDate.toLocaleDateString("si-LK");
-                            box.innerHTML = `${formattedDate}<br>${formatLKR(weeklyAmount)}<br><button class="undo-btn" onclick="undoPayment(${paymentId})">Undo</button>`;
-                        }
-                    } else if (status === 'unpaid') {
-                        box.className = 'week-box unpaid';
-                        // Restore proper content without undo button
+                        box.style.pointerEvents = 'auto';
+                        // Make paid boxes clickable to undo
+                        box.onclick = () => undoPaymentFromBox(paymentId, loanId, week);
+                        // Restore proper content without button
                         const loan = allLoans.find(l => l.id === loanId);
                         if (loan) {
                             const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
@@ -317,8 +306,20 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
                             dueDate.setDate(dueDate.getDate() + 7 * week);
                             const formattedDate = dueDate.toLocaleDateString("si-LK");
                             box.innerHTML = `${formattedDate}<br>${formatLKR(weeklyAmount)}`;
-                            box.style.pointerEvents = 'auto';
-                            // Re-enable click
+                        }
+                    } else if (status === 'unpaid') {
+                        box.className = 'week-box unpaid';
+                        box.style.pointerEvents = 'auto';
+                        // Restore proper content and click handler
+                        const loan = allLoans.find(l => l.id === loanId);
+                        if (loan) {
+                            const weeklyAmount = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
+                            const startDate = new Date(loan.start_date);
+                            const dueDate = new Date(startDate);
+                            dueDate.setDate(dueDate.getDate() + 7 * week);
+                            const formattedDate = dueDate.toLocaleDateString("si-LK");
+                            box.innerHTML = `${formattedDate}<br>${formatLKR(weeklyAmount)}`;
+                            // Re-enable click to mark as paid
                             box.onclick = () => markPaidBackend(loanId, week, weeklyAmount);
                         }
                     }
@@ -396,21 +397,29 @@ async function undoPayment(paymentId, button = null){
     let week = null;
     let weekBox = null;
 
-    borrowerContainers.forEach(container => {
-        const weekBoxes = container.querySelectorAll('.week-box');
-        weekBoxes.forEach((box, index) => {
-            const undoButton = box.querySelector('button[onclick*="undoPayment"]');
-            if(undoButton && undoButton.onclick.toString().includes(paymentId)){
-                const header = container.querySelector('div');
-                const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
-                if(loanIdMatch){
-                    loanId = parseInt(loanIdMatch[1]);
-                    week = index + 1;
-                    weekBox = box;
+    // If button is provided (from edit popup), find the corresponding week box
+    if (button) {
+        borrowerContainers.forEach(container => {
+            const weekBoxes = container.querySelectorAll('.week-box');
+            weekBoxes.forEach((box, index) => {
+                if (box.classList.contains('paid')) {
+                    const header = container.querySelector('div');
+                    const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+                    if (loanIdMatch) {
+                        const currentLoanId = parseInt(loanIdMatch[1]);
+                        const currentWeek = index + 1;
+                        // Find the payment for this loan and week
+                        const payment = allPayments.find(p => p.loan_id === currentLoanId && p.week === currentWeek);
+                        if (payment && payment.id === paymentId) {
+                            loanId = currentLoanId;
+                            week = currentWeek;
+                            weekBox = box;
+                        }
+                    }
                 }
-            }
+            });
         });
-    });
+    }
 
     // Disable the button and show loading
     if (button) {
@@ -436,6 +445,18 @@ async function undoPayment(paymentId, button = null){
             // Refresh the due table if it exists
             if (document.querySelector("#due-table tbody").children.length > 0) {
                 checkDueByDate();
+            }
+            // Refresh edit popup if it's open
+            const editPopup = document.getElementById('edit-popup');
+            if (editPopup && editPopup.style.display === 'block') {
+                // Find the loan ID from the current context
+                borrowerContainers.forEach(container => {
+                    const header = container.querySelector('div');
+                    const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+                    if (loanIdMatch && parseInt(loanIdMatch[1]) === loanId) {
+                        toggleEdit(loanId);
+                    }
+                });
             }
             // Success - keep button as "Undone" briefly then restore
             if(button){
@@ -479,15 +500,67 @@ async function undoPayment(paymentId, button = null){
     }
 }
 
-// Placeholder for undo
-function undoPlaceholder(loanId, week){
-    // Do nothing, will be updated with real onclick
+// Undo payment from clicking on paid week box
+async function undoPaymentFromBox(paymentId, loanId, week){
+    const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
+    let weekBox = null;
+
+    borrowerContainers.forEach(container => {
+        const weekBoxes = container.querySelectorAll('.week-box');
+        weekBoxes.forEach((box, index) => {
+            if (index + 1 === week) {
+                const header = container.querySelector('div');
+                const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+                if (loanIdMatch && parseInt(loanIdMatch[1]) === loanId) {
+                    weekBox = box;
+                }
+            }
+        });
+    });
+
+    if (!weekBox) return;
+
+    // Disable the box and show loading
+    weekBox.style.pointerEvents = 'none';
+    weekBox.innerHTML = 'Undoing...';
+    weekBox.classList.add('loading');
+
+    try {
+        const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
+
+        if (res.ok) {
+            // Remove from allPayments array
+            allPayments = allPayments.filter(p => p.id !== paymentId);
+            // Update UI to unpaid
+            updatePaymentUI(loanId, week, 'unpaid');
+            // Refresh the due table if it exists
+            if (document.querySelector("#due-table tbody").children.length > 0) {
+                checkDueByDate();
+            }
+        } else {
+            alert("Failed to undo payment.");
+            // Re-enable the box
+            weekBox.style.pointerEvents = 'auto';
+            weekBox.classList.remove('loading');
+        }
+    } catch (error) {
+        alert("Network error occurred.");
+        // Re-enable the box
+        weekBox.style.pointerEvents = 'auto';
+        weekBox.classList.remove('loading');
+    }
 }
 
 // Toggle edit mode for a loan
 async function toggleEdit(loanId){
     const editContent = document.getElementById('edit-content');
     editContent.innerHTML = '<p>Loading...</p>';
+
+    // Get fresh data to ensure we have the latest payment status
+    if (allPayments.length === 0) {
+        const paymentsRes = await fetch(`${API_URL}/api/payments`);
+        allPayments = await paymentsRes.json();
+    }
 
     // Find paid payments for this loan
     const paidPayments = allPayments.filter(p => p.loan_id === loanId);
