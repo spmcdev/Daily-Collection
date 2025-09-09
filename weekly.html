@@ -311,6 +311,51 @@ function updateSearchHighlighting(searchTerm){
     });
 }
 
+// Update search results with new due date information
+function updateSearchResultsWithDueDate(searchTerm, targetDate){
+    const resultsDiv = document.getElementById('search-results');
+    const term = searchTerm.toLowerCase().trim();
+
+    // Get filtered loans based on search term
+    const filteredLoans = allLoans.filter(loan =>
+        (loan.borrower_id && loan.borrower_id.toLowerCase().includes(term)) ||
+        (loan.borrower && loan.borrower.toLowerCase().includes(term))
+    );
+
+    // Calculate overdue payments for filtered loans
+    let totalOverduePayments = 0;
+    filteredLoans.forEach(loan => {
+        const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+        const overdueWeeks = Math.max(0, loan.weeks - paidWeeks);
+        totalOverduePayments += overdueWeeks;
+    });
+
+    // Calculate due payments by selected date
+    let duePaymentsCount = 0;
+    filteredLoans.forEach(loan => {
+        const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+        for(let i = paidWeeks + 1; i <= loan.weeks; i++){
+            const nextDue = new Date(loan.start_date);
+            nextDue.setDate(nextDue.getDate() + 7 * i);
+            if(nextDue <= targetDate){
+                duePaymentsCount++;
+            }
+        }
+    });
+
+    // Build enhanced results message
+    let resultsMessage = `Found ${filteredLoans.length} loan(s) matching "${searchTerm}"`;
+    if (totalOverduePayments > 0) {
+        resultsMessage += ` • ${totalOverduePayments} overdue payment(s)`;
+    }
+    if (duePaymentsCount > 0) {
+        resultsMessage += ` • ${duePaymentsCount} due by ${targetDate.toLocaleDateString('en-US')}`;
+    }
+
+    resultsDiv.innerHTML = resultsMessage;
+    resultsDiv.style.color = filteredLoans.length > 0 ? '#27ae60' : '#e74c3c';
+}
+
 // Load borrowers with weekly boxes
 async function loadAllBorrowersHorizontal(searchTerm = ''){
     // Load data only if not already loaded
@@ -836,7 +881,30 @@ function clearDueTable(){
     // Refresh search results to remove due date information
     const searchTerm = document.getElementById('search-input').value.trim();
     if (searchTerm) {
-        performSearch();
+        // Recalculate search results without due date
+        const resultsDiv = document.getElementById('search-results');
+        const term = searchTerm.toLowerCase().trim();
+        const filteredLoans = allLoans.filter(loan =>
+            (loan.borrower_id && loan.borrower_id.toLowerCase().includes(term)) ||
+            (loan.borrower && loan.borrower.toLowerCase().includes(term))
+        );
+
+        // Calculate overdue payments for filtered loans
+        let totalOverduePayments = 0;
+        filteredLoans.forEach(loan => {
+            const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
+            const overdueWeeks = Math.max(0, loan.weeks - paidWeeks);
+            totalOverduePayments += overdueWeeks;
+        });
+
+        // Build results message without due date info
+        let resultsMessage = `Found ${filteredLoans.length} loan(s) matching "${searchTerm}"`;
+        if (totalOverduePayments > 0) {
+            resultsMessage += ` • ${totalOverduePayments} overdue payment(s)`;
+        }
+
+        resultsDiv.innerHTML = resultsMessage;
+        resultsDiv.style.color = filteredLoans.length > 0 ? '#27ae60' : '#e74c3c';
     }
 }
 
@@ -946,10 +1014,12 @@ async function checkDueByDate(){
         tbody.appendChild(trEmpty);
     }
 
-    // Update highlighting if there's an active search (without triggering new search)
+    // Update highlighting and search results if there's an active search
     const activeSearchTerm = document.getElementById('search-input').value.trim();
     if (activeSearchTerm) {
         updateSearchHighlighting(activeSearchTerm.toLowerCase());
+        // Also update the search results to reflect new due date counts
+        updateSearchResultsWithDueDate(activeSearchTerm, targetDate);
     }
 }
 
