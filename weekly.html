@@ -21,6 +21,7 @@ tbody tr:nth-child(even) { background-color: #f9f9f9; }
 tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 
 .week-box { padding: 5px; border-radius: 5px; margin: 2px; cursor: pointer; display: inline-block; position: relative; }
+.week-box.loading { opacity: 0.7; cursor: not-allowed; }
 .paid { background-color: #2ecc71; color: white; }
 .unpaid { background-color: #e74c3c; color: white; }
 button { cursor: pointer; background-color: #3498db; color: white; border: none; border-radius: 5px; padding: 3px 6px; margin-top: 3px; }
@@ -134,8 +135,6 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
   <button onclick="checkDueByDate()">Check Due By Date</button>
 </div>
 
-<div class="section" id="borrowers-container"></div>
-
 <div class="section">
   <h2>Due Payments</h2>
   <table id="due-table">
@@ -146,11 +145,14 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
         <th>Loan Amount</th>
         <th>Installment Amount</th>
         <th>Due Date</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
+
+<div class="section" id="borrowers-container"></div>
 
 <div id="edit-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000; max-height:80%; overflow:auto;">
   <div id="popup-header" style="cursor: move; background: #f0f0f0; padding: 5px; margin: -20px -20px 10px -20px; border-bottom: 1px solid #ccc;">
@@ -312,6 +314,26 @@ function updatePaymentUI(loanId, week, status, paymentId = null) {
 
 // Mark payment as paid
 async function markPaidBackend(loanId, week, amount){
+    // Find the week box element and disable it
+    const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
+    let weekBox = null;
+
+    borrowerContainers.forEach(container => {
+        const header = container.querySelector('div');
+        const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
+
+        if (loanIdMatch && parseInt(loanIdMatch[1]) === loanId) {
+            const weekBoxes = container.querySelectorAll('.week-box');
+            weekBox = weekBoxes[week - 1]; // week is 1-based, array is 0-based
+        }
+    });
+
+    if (weekBox) {
+        weekBox.style.pointerEvents = 'none';
+        weekBox.innerHTML = 'Processing...';
+        weekBox.classList.add('loading');
+    }
+
     // Update UI to paid immediately
     updatePaymentUI(loanId, week, 'paid');
 
@@ -323,7 +345,15 @@ async function markPaidBackend(loanId, week, amount){
             body: JSON.stringify(paymentData)
         });
 
-        if(!res.ok){
+        if(res.ok){
+            const newPayment = await res.json();
+            // Update allPayments array
+            allPayments.push(newPayment);
+            // Refresh the due table if it exists
+            if (document.querySelector("#due-table tbody").children.length > 0) {
+                checkDueByDate();
+            }
+        } else {
             alert("Failed to mark payment.");
             // Revert UI to unpaid
             updatePaymentUI(loanId, week, 'unpaid');
@@ -332,6 +362,12 @@ async function markPaidBackend(loanId, week, amount){
         alert("Network error occurred.");
         // Revert UI to unpaid
         updatePaymentUI(loanId, week, 'unpaid');
+    } finally {
+        // Re-enable the week box
+        if (weekBox) {
+            weekBox.style.pointerEvents = 'auto';
+            weekBox.classList.remove('loading');
+        }
     }
 }
 
@@ -341,20 +377,34 @@ async function undoPayment(paymentId, button = null){
     const borrowerContainers = document.querySelectorAll('#borrowers-container > div');
     let loanId = null;
     let week = null;
+    let weekBox = null;
+
     borrowerContainers.forEach(container => {
         const weekBoxes = container.querySelectorAll('.week-box');
         weekBoxes.forEach((box, index) => {
-            const button = box.querySelector('button[onclick*="undoPayment"]');
-            if(button && button.onclick.toString().includes(paymentId)){
+            const undoButton = box.querySelector('button[onclick*="undoPayment"]');
+            if(undoButton && undoButton.onclick.toString().includes(paymentId)){
                 const header = container.querySelector('div');
                 const loanIdMatch = header.innerHTML.match(/Loan ID: (\d+)/);
                 if(loanIdMatch){
                     loanId = parseInt(loanIdMatch[1]);
                     week = index + 1;
+                    weekBox = box;
                 }
             }
         });
     });
+
+    // Disable the button and show loading
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = 'Processing...';
+        button.classList.add('loading');
+    }
+    if (weekBox) {
+        weekBox.style.pointerEvents = 'none';
+        weekBox.classList.add('loading');
+    }
 
     // Optimistically update UI to unpaid
     if(loanId && week){
@@ -364,7 +414,12 @@ async function undoPayment(paymentId, button = null){
     try {
         const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
         if(res.ok){
-            loadAllBorrowersHorizontal();
+            // Remove from allPayments array
+            allPayments = allPayments.filter(p => p.id !== paymentId);
+            // Refresh the due table if it exists
+            if (document.querySelector("#due-table tbody").children.length > 0) {
+                checkDueByDate();
+            }
             if(button){
                 button.innerHTML = 'Undone';
             }
@@ -373,6 +428,7 @@ async function undoPayment(paymentId, button = null){
             if(button){
                 button.disabled = false;
                 button.innerHTML = 'Undo';
+                button.classList.remove('loading');
             }
             // Revert UI to paid
             if(loanId && week){
@@ -384,6 +440,12 @@ async function undoPayment(paymentId, button = null){
         // Revert UI to paid
         if(loanId && week){
             updatePaymentUI(loanId, week, 'paid', paymentId);
+        }
+    } finally {
+        // Re-enable the week box
+        if (weekBox) {
+            weekBox.style.pointerEvents = 'auto';
+            weekBox.classList.remove('loading');
         }
     }
 }
@@ -484,6 +546,84 @@ async function undoForLoanWeek(loanId, week){
 }
 
 
+// Mark payment as paid from table
+async function markPaidFromTable(loanId, week, amount){
+    const button = event.target;
+    if (button.disabled) return; // Prevent double-clicking
+
+    button.disabled = true;
+    button.innerHTML = 'Processing...';
+    button.classList.add('loading');
+
+    // Update main payment boxes immediately
+    updatePaymentUI(loanId, week, 'paid');
+
+    try {
+        const paymentData = { loan_id: loanId, week, amount };
+        const res = await fetch(`${API_URL}/api/payments`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(paymentData)
+        });
+
+        if(res.ok){
+            const newPayment = await res.json();
+            // Update allPayments array
+            allPayments.push(newPayment);
+            // Refresh the due table to show updated status
+            checkDueByDate();
+        } else {
+            alert("Failed to mark payment.");
+            // Revert UI changes
+            updatePaymentUI(loanId, week, 'unpaid');
+        }
+    } catch(error) {
+        alert("Network error occurred.");
+        // Revert UI changes
+        updatePaymentUI(loanId, week, 'unpaid');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Mark Paid';
+        button.classList.remove('loading');
+    }
+}
+
+// Undo payment from table
+async function undoPaymentFromTable(paymentId, loanId, week){
+    const button = event.target;
+    if (button.disabled) return; // Prevent double-clicking
+
+    button.disabled = true;
+    button.innerHTML = 'Processing...';
+    button.classList.add('loading');
+
+    // Update main payment boxes immediately
+    updatePaymentUI(loanId, week, 'unpaid');
+
+    try {
+        const res = await fetch(`${API_URL}/api/payments/${paymentId}`, { method: "DELETE" });
+
+        if(res.ok){
+            // Remove from allPayments array
+            allPayments = allPayments.filter(p => p.id !== paymentId);
+            // Refresh the due table to show updated status
+            checkDueByDate();
+        } else {
+            alert("Failed to undo payment.");
+            // Revert UI changes
+            updatePaymentUI(loanId, week, 'paid', paymentId);
+        }
+    } catch(error) {
+        alert("Network error occurred.");
+        // Revert UI changes
+        updatePaymentUI(loanId, week, 'paid', paymentId);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Undo Payment';
+        button.classList.remove('loading');
+    }
+}
+
 // Check due installments by selected date and show total
 async function checkDueByDate(){
     const dateInput = document.getElementById("check-date").value;
@@ -497,6 +637,7 @@ async function checkDueByDate(){
     tbody.innerHTML = "";
 
     let grandTotal = 0;
+    let dueInstallments = [];
 
     loans.forEach(loan => {
         const weeklyAmount = loan.amount * (1 + loan.interest/100) / loan.weeks;
@@ -508,28 +649,57 @@ async function checkDueByDate(){
 
             if(nextDue <= targetDate){
                 grandTotal += weeklyAmount;
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${loan.borrower_id || '-'}</td>
-                    <td>${loan.borrower}</td>
-                    <td>${formatLKR(loan.amount)}</td>
-                    <td>${formatLKR(weeklyAmount)}</td>
-                    <td>${nextDue.toLocaleDateString("si-LK")}</td>
-                `;
-                tbody.appendChild(tr);
+                dueInstallments.push({
+                    loanId: loan.id,
+                    borrowerId: loan.borrower_id || '-',
+                    borrower: loan.borrower,
+                    loanAmount: loan.amount,
+                    weeklyAmount: weeklyAmount,
+                    dueDate: nextDue,
+                    week: i
+                });
             }
         }
+    });
+
+    // Sort by due date
+    dueInstallments.sort((a, b) => a.dueDate - b.dueDate);
+
+    // Display installments with action buttons
+    dueInstallments.forEach(installment => {
+        const tr = document.createElement("tr");
+        const existingPayment = payments.find(p => p.loan_id === installment.loanId && p.week === installment.week);
+        const isPaid = !!existingPayment;
+
+        tr.innerHTML = `
+            <td>${installment.borrowerId}</td>
+            <td>${installment.borrower}</td>
+            <td>${formatLKR(installment.loanAmount)}</td>
+            <td>${formatLKR(installment.weeklyAmount)}</td>
+            <td>${installment.dueDate.toLocaleDateString("si-LK")}</td>
+            <td>
+                ${isPaid ?
+                    `<button onclick="undoPaymentFromTable(${existingPayment.id}, ${installment.loanId}, ${installment.week})" class="undo-btn">Undo Payment</button>` :
+                    `<button onclick="markPaidFromTable(${installment.loanId}, ${installment.week}, ${installment.weeklyAmount})" class="mark-paid-btn">Mark Paid</button>`
+                }
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 
     // Add total row
     if(grandTotal > 0){
         const trTotal = document.createElement("tr");
         trTotal.innerHTML = `
-            <td colspan="3"><strong>Total</strong></td>
+            <td colspan="3"><strong>Total Due</strong></td>
             <td><strong>${formatLKR(grandTotal)}</strong></td>
-            <td></td>
+            <td colspan="2"><strong>${dueInstallments.length} installments</strong></td>
         `;
         tbody.appendChild(trTotal);
+    } else {
+        const trEmpty = document.createElement("tr");
+        trEmpty.innerHTML = '<td colspan="6" style="text-align: center; color: #27ae60;"><strong>No payments due by selected date! 🎉</strong></td>';
+        tbody.appendChild(trEmpty);
     }
 }
 
