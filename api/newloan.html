@@ -28,6 +28,11 @@ button:hover { background-color: #2980b9; }
    <a href="/borrower_summary.html">Borrower Summary</a>
  </nav>
 
+<!-- Environment Indicator Banner -->
+<div id="env-banner" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; text-align: center; padding: 8px 15px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+ 🚧 STAGING ENVIRONMENT - Testing Only 🚧<br><small>This is a staging site for testing. Your real data is safe on the production site.</small><br><small style="color: #ff6b6b;">🔄 Test Update: Staging deployment working!</small>
+</div>
+
 <h1>New Loan</h1>
 
 <form id="loan-form">
@@ -95,6 +100,25 @@ document.getElementById("loan-form").onsubmit = async function(e){
         console.error(err);
         alert("Failed to add loan. See console for details.");
     }
+};
+
+// Environment detection and banner display
+function showEnvironmentBanner(){
+    const hostname = window.location.hostname;
+    const banner = document.getElementById('env-banner');
+
+    // Show banner on staging/demo environments
+    if (hostname.includes('staging') || hostname.includes('preview') || hostname.includes('git-') || hostname.includes('vercel-preview') ||
+        (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'staging')) {
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+// Call on load
+window.onload = function(){
+    showEnvironmentBanner();
 };
 </script>
 
