@@ -186,9 +186,10 @@ function performSearch(){
     loadAllBorrowersHorizontal(searchTerm);
 
     // Update search results info
+    const term = searchTerm.toLowerCase().trim();
     const filteredCount = allLoans.filter(loan =>
-        (loan.borrower_id && loan.borrower_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (loan.borrower && loan.borrower.toLowerCase().includes(searchTerm.toLowerCase()))
+        (loan.borrower_id && loan.borrower_id.toLowerCase().includes(term)) ||
+        (loan.borrower && loan.borrower.toLowerCase().includes(term))
     ).length;
 
     resultsDiv.innerHTML = `Found ${filteredCount} loan(s) matching "${searchTerm}"`;
@@ -198,7 +199,7 @@ function performSearch(){
 function clearSearch(){
     document.getElementById('search-input').value = '';
     document.getElementById('search-results').innerHTML = '';
-    loadAllBorrowersHorizontal(''); // Load all loans
+    loadAllBorrowersHorizontal(); // Load all loans
 }
 
 function handleSearch(event){
@@ -209,8 +210,8 @@ function handleSearch(event){
 
 // Load borrowers with weekly boxes
 async function loadAllBorrowersHorizontal(searchTerm = ''){
-    // Load data only if not already loaded or if searchTerm is empty (full reload)
-    if (allLoans.length === 0 || searchTerm === '') {
+    // Load data only if not already loaded
+    if (allLoans.length === 0) {
         const loansRes = await fetch(`${API_URL}/api/loans`);
         allLoans = await loansRes.json();
         const paymentsRes = await fetch(`${API_URL}/api/payments`);
@@ -545,7 +546,7 @@ async function checkDueByDate(){
 // Load all on page load
 window.onload = function(){
     showEnvironmentBanner();
-    loadAllBorrowersHorizontal(''); // Load all loans initially
+    loadAllBorrowersHorizontal(); // Load all loans initially
 };
 
 // Environment detection and banner display
