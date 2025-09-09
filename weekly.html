@@ -248,7 +248,7 @@ async function loadAllBorrowersHorizontal(searchTerm = ''){
         const startDate = new Date(loan.start_date || new Date());
 
         for(let i = 1; i <= loan.weeks; i++){
-            const paidRecord = payments.find(p => p.loan_id === loan.id && p.week === i);
+            const paidRecord = allPayments.find(p => p.loan_id === loan.id && p.week === i);
             const weekDiv = document.createElement("div");
             weekDiv.className = "week-box " + (paidRecord ? "paid" : "unpaid");
 
@@ -398,12 +398,8 @@ async function toggleEdit(loanId){
     const editContent = document.getElementById('edit-content');
     editContent.innerHTML = '<p>Loading...</p>';
 
-    // Fetch payments for this loan
-    const paymentsRes = await fetch(`${API_URL}/api/payments?t=${Date.now()}`);
-    const payments = await paymentsRes.json();
-
     // Find paid payments for this loan
-    const paidPayments = payments.filter(p => p.loan_id === loanId);
+    const paidPayments = allPayments.filter(p => p.loan_id === loanId);
 
     if(paidPayments.length === 0){
         editContent.innerHTML = '<p>No paid payments to edit.</p>';
@@ -465,12 +461,8 @@ async function undoForLoanWeek(loanId, week){
     updatePaymentUI(loanId, week, 'unpaid');
 
     try {
-        // Fetch all payments
-        const paymentsRes = await fetch(`${API_URL}/api/payments?t=${Date.now()}`, { cache: 'no-cache' });
-        const payments = await paymentsRes.json();
-
         // Find the payment for this loan and week
-        const payment = payments.find(p => p.loan_id === loanId && p.week === week);
+        const payment = allPayments.find(p => p.loan_id === loanId && p.week === week);
 
         if(payment){
             // Send delete request
@@ -498,10 +490,8 @@ async function checkDueByDate(){
     if(!dateInput) return alert("Please select a date");
     const targetDate = new Date(dateInput);
 
-    const loansRes = await fetch(`${API_URL}/api/loans`);
-    const loans = await loansRes.json();
-    const paymentsRes = await fetch(`${API_URL}/api/payments`);
-    const payments = await paymentsRes.json();
+    const loans = allLoans;
+    const payments = allPayments;
 
     const tbody = document.querySelector("#due-table tbody");
     tbody.innerHTML = "";
@@ -510,7 +500,7 @@ async function checkDueByDate(){
 
     loans.forEach(loan => {
         const weeklyAmount = loan.amount * (1 + loan.interest/100) / loan.weeks;
-        const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
+        const paidWeeks = allPayments.filter(p => p.loan_id === loan.id).length;
 
         for(let i = paidWeeks + 1; i <= loan.weeks; i++){
             const nextDue = new Date(loan.start_date);
