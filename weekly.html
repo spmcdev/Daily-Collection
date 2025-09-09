@@ -47,6 +47,62 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 #check-container { text-align: center; margin-bottom: 20px; }
 #check-container input { padding: 6px; font-size: 16px; }
 #check-container button { padding: 6px 12px; font-size: 16px; }
+
+/* Search bar styling */
+.search-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 15px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.search-container input {
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    width: 300px;
+    margin-right: 10px;
+    transition: border-color 0.3s ease;
+}
+
+.search-container input:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.search-container button {
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.search-container button:hover {
+    background-color: #2980b9;
+}
+
+.search-container button.clear-search {
+    background-color: #95a5a6;
+    margin-left: 10px;
+}
+
+.search-container button.clear-search:hover {
+    background-color: #7f8c8d;
+}
+
+.search-results {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
 </style>
 </head>
 <body>
@@ -64,6 +120,14 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 </div>
 
 <h1>Weekly Payments</h1>
+
+<!-- Search Bar -->
+<div class="search-container">
+    <input type="text" id="search-input" placeholder="Search by Borrower ID or Name..." onkeyup="handleSearch(event)">
+    <button onclick="performSearch()">Search</button>
+    <button onclick="clearSearch()" class="clear-search">Clear</button>
+    <div id="search-results" class="search-results"></div>
+</div>
 
 <div id="check-container">
   <input type="date" id="check-date">
@@ -99,25 +163,77 @@ button:disabled { background-color: #95a5a6; cursor: not-allowed; }
 <script>
 const API_URL = window.location.origin;
 
+// Global variables to store original data
+let allLoans = [];
+let allPayments = [];
+
 // Format currency
 function formatLKR(amount){
     return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
+// Search functions
+function performSearch(){
+    const searchTerm = document.getElementById('search-input').value.trim();
+    const resultsDiv = document.getElementById('search-results');
+
+    if (searchTerm === '') {
+        clearSearch();
+        return;
+    }
+
+    // Load and filter data
+    loadAllBorrowersHorizontal(searchTerm);
+
+    // Update search results info
+    const filteredCount = allLoans.filter(loan =>
+        (loan.borrower_id && loan.borrower_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (loan.borrower && loan.borrower.toLowerCase().includes(searchTerm.toLowerCase()))
+    ).length;
+
+    resultsDiv.innerHTML = `Found ${filteredCount} loan(s) matching "${searchTerm}"`;
+    resultsDiv.style.color = filteredCount > 0 ? '#27ae60' : '#e74c3c';
+}
+
+function clearSearch(){
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').innerHTML = '';
+    loadAllBorrowersHorizontal(''); // Load all loans
+}
+
+function handleSearch(event){
+    if (event.key === 'Enter') {
+        performSearch();
+    }
+}
+
 // Load borrowers with weekly boxes
-async function loadAllBorrowersHorizontal(){
-    const loansRes = await fetch(`${API_URL}/api/loans`);
-    const loans = await loansRes.json();
-    const paymentsRes = await fetch(`${API_URL}/api/payments`);
-    const payments = await paymentsRes.json();
+async function loadAllBorrowersHorizontal(searchTerm = ''){
+    // Load data only if not already loaded or if searchTerm is empty (full reload)
+    if (allLoans.length === 0 || searchTerm === '') {
+        const loansRes = await fetch(`${API_URL}/api/loans`);
+        allLoans = await loansRes.json();
+        const paymentsRes = await fetch(`${API_URL}/api/payments`);
+        allPayments = await paymentsRes.json();
+    }
 
     const container = document.getElementById("borrowers-container");
     container.innerHTML = "";
 
-    // Sort loans by loan ID descending (latest first)
-    loans.sort((a, b) => b.id - a.id);
+    // Filter loans based on search term
+    let filteredLoans = allLoans;
+    if (searchTerm.trim() !== '') {
+        const term = searchTerm.toLowerCase().trim();
+        filteredLoans = allLoans.filter(loan =>
+            (loan.borrower_id && loan.borrower_id.toLowerCase().includes(term)) ||
+            (loan.borrower && loan.borrower.toLowerCase().includes(term))
+        );
+    }
 
-    loans.forEach(loan => {
+    // Sort loans by loan ID descending (latest first)
+    filteredLoans.sort((a, b) => b.id - a.id);
+
+    filteredLoans.forEach(loan => {
         const weeklyInstallment = (loan.amount * (1 + loan.interest/100) / loan.weeks).toFixed(2);
         const borrowerDiv = document.createElement("div");
         borrowerDiv.style.marginBottom = "25px";
@@ -429,7 +545,7 @@ async function checkDueByDate(){
 // Load all on page load
 window.onload = function(){
     showEnvironmentBanner();
-    loadAllBorrowersHorizontal();
+    loadAllBorrowersHorizontal(''); // Load all loans initially
 };
 
 // Environment detection and banner display
