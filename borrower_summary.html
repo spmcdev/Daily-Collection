@@ -1,4 +1,40 @@
-<!DOCTYPE html>
+<!DOCTYP  nav { 
+    background-color: #2c3e50; 
+    padding: 12px 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+  }
+  
+  .nav-links a { 
+    color: #ecf0f1; 
+    margin: 0 15px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 16px; 
+  }
+  
+  .nav-links a:hover { 
+    text-decoration: underline; 
+    color: #f39c12; 
+  }
+  
+  .user-info {
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logout-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+  }tml>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -37,7 +73,18 @@ button:hover { background-color: #2980b9; }
 </head>
 <body>
 <nav>
-  
+  <div class="nav-links">
+    <a href="/" id="dashboard-link">Dashboard</a>
+    <a href="/newloan.html" id="newloan-link">New Loan</a>
+    <a href="/analysis.html" id="analysis-link">Analysis</a>
+    <a href="/weekly.html" id="weekly-link">Weekly Payments</a>
+    <a href="/borrower_summary.html" style="color: #f39c12;">Borrower Summary</a>
+    <a href="/admin.html" id="admin-link">Admin Panel</a>
+  </div>
+  <div class="user-info">
+    <span id="user-display">Loading...</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
 </nav>
 
 <!-- Environment Indicator Banner -->
@@ -81,6 +128,62 @@ button:hover { background-color: #2980b9; }
 
 <script>
 const API_URL = window.location.origin;
+let currentUser = null;
+
+// Check authentication on page load
+async function checkAuth() {
+  try {
+    const response = await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'check' })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.authenticated) {
+      window.location.href = '/login.html';
+      return;
+    }
+    
+    currentUser = data.user;
+    document.getElementById('user-display').textContent = `Welcome, ${data.user.borrower_name} (${data.user.role})`;
+    
+    // Hide navigation links for users (only show borrower summary)
+    if (data.user.role === 'user') {
+      document.getElementById('dashboard-link').style.display = 'none';
+      document.getElementById('newloan-link').style.display = 'none';
+      document.getElementById('analysis-link').style.display = 'none';
+      document.getElementById('weekly-link').style.display = 'none';
+      document.getElementById('admin-link').style.display = 'none';
+      
+      // Auto-load their own data
+      document.getElementById('borrower-id-input').value = data.user.username;
+      document.getElementById('borrower-id-input').disabled = true;
+      loadBorrowerSummary();
+    }
+  } catch (error) {
+    console.error('Auth check error:', error);
+    window.location.href = '/login.html';
+  }
+}
+
+// Logout function
+async function logout() {
+  try {
+    await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'logout' })
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    window.location.href = '/login.html';
+  }
+}
 
 function formatLKR(amount){
     return "LKR " + parseFloat(amount).toLocaleString("si-LK", {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -94,6 +197,13 @@ async function loadBorrowerSummary(){
         alert("Enter Borrower ID");
         return;
     }
+    
+    // Check if user role is trying to access someone else's data
+    if (currentUser && currentUser.role === 'user' && borrowerId !== currentUser.username) {
+        alert("You can only view your own borrower summary");
+        document.getElementById("borrower-id-input").value = currentUser.username;
+        return;
+    }
 
     // Show the filter and installments search sections when borrower ID is entered
     document.getElementById("filter-section").style.display = "block";
@@ -105,27 +215,27 @@ async function loadBorrowerSummary(){
         el.classList.remove('highlighted');
     });
 
-    const loansRes = await fetch(`${API_URL}/api/loans`);
-    const loans = await loansRes.json();
-    const paymentsRes = await fetch(`${API_URL}/api/payments`);
-    const payments = await paymentsRes.json();
+    try {
+        // Use the new borrower summary API endpoint
+        const response = await fetch(`${API_URL}/api/borrower-summary?borrower_id=${encodeURIComponent(borrowerId)}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const loans = data.loans;
+        const payments = data.payments;
 
     // Debug: Log borrower ID input and available loans
     console.log("Borrower ID entered:", borrowerId);
-    console.log("Available borrower IDs in database:", [...new Set(loans.map(l => l.borrower_id))]);
-    console.log("Available loan IDs in database:", loans.map(l => l.id).sort((a,b) => a - b));
-    console.log("All loans before filtering:", loans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
+    console.log("All loans received:", loans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
 
-    let borrowerLoans = loans.filter(l => {
-        const matches = String(l.borrower_id).trim() === String(borrowerId).trim();
-        console.log(`Checking loan ${l.id}: borrower_id "${l.borrower_id}" matches "${borrowerId}": ${matches}`);
-        return matches;
-    });
+    let borrowerLoans = loans;
 
-    console.log("Loans after borrower ID filtering:", borrowerLoans.map(l => ({id: l.id, borrower_id: l.borrower_id, borrower: l.borrower})));
-    console.log("Loan IDs after filtering:", borrowerLoans.map(l => l.id).sort((a,b) => a - b));
-
-    // Apply filter first
+    // Apply filter
     if(filterType === "completed"){
         borrowerLoans = borrowerLoans.filter(loan => {
             const paidWeeks = payments.filter(p => p.loan_id === loan.id).length;
@@ -260,6 +370,12 @@ async function loadBorrowerSummary(){
       <div><h3>Total Outstanding</h3><p>${formatLKR(totalOutstanding)}</p></div>
     </div>`;
     container.innerHTML += totalsHTML;
+    
+    } catch (error) {
+        console.error('Error loading borrower summary:', error);
+        const container = document.getElementById("summary-container");
+        container.innerHTML = `<p style="color: red;">Error loading data: ${error.message}</p>`;
+    }
 }
 
 async function showInstallmentsDue(){
@@ -504,6 +620,7 @@ function showEnvironmentBanner(){
 
 // Call on load
 window.onload = function(){
+    checkAuth();
     showEnvironmentBanner();
 };
 </script>

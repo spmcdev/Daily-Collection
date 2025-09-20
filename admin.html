@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - User Management</title>
+<style>
+  body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #f4f6f8 0%, #e8ecf1 100%);
+      min-height: 100vh;
+      line-height: 1.6;
+  }
+  
+  nav { 
+    background-color: #2c3e50; 
+    padding: 12px 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+  }
+  
+  .nav-links a { 
+    color: #ecf0f1; 
+    margin: 0 15px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 16px; 
+  }
+  
+  .nav-links a:hover { 
+    text-decoration: underline; 
+    color: #f39c12; 
+  }
+  
+  .user-info {
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logout-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  h1 { 
+    text-align: center; 
+    margin-top: 25px; 
+    color: #34495e; 
+  }
+
+  .admin-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .section {
+    background: white;
+    margin: 20px 0;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .section h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: end;
+  }
+
+  .form-group {
+    flex: 1;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #34495e;
+    font-weight: 500;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ecf0f1;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .btn-primary {
+    background: #3498db;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #2980b9;
+  }
+
+  .btn-danger {
+    background: #e74c3c;
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background: #c0392b;
+  }
+
+  .btn-warning {
+    background: #f39c12;
+    color: white;
+  }
+
+  .btn-warning:hover {
+    background: #e67e22;
+  }
+
+  .btn-success {
+    background: #27ae60;
+    color: white;
+  }
+
+  .btn-success:hover {
+    background: #229954;
+  }
+
+  .users-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  .users-table th, .users-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ecf0f1;
+  }
+
+  .users-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .users-table tr:hover {
+    background: #f8f9fa;
+  }
+
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .status-active {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .role-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .role-admin {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .role-user {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 5px;
+  }
+
+  .action-buttons button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .message {
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+    display: none;
+  }
+
+  .message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+
+  .message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .password-reset-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 20px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/newloan.html">New Loan</a>
+    <a href="/analysis.html">Analysis</a>
+    <a href="/weekly.html">Weekly Payments</a>
+    <a href="/borrower_summary.html">Borrower Summary</a>
+    <a href="/admin.html" style="color: #f39c12;">Admin Panel</a>
+  </div>
+  <div class="user-info">
+    <span id="user-display">Loading...</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<h1>Admin Panel - User Management</h1>
+
+<div class="admin-container">
+  <div class="section">
+    <h2>Create New User</h2>
+    <div id="create-message" class="message"></div>
+    
+    <form id="create-user-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="new-username">Username (Borrower ID):</label>
+          <input type="text" id="new-username" required>
+        </div>
+        <div class="form-group">
+          <label for="new-borrower-name">Display Name:</label>
+          <input type="text" id="new-borrower-name" required>
+        </div>
+        <div class="form-group">
+          <label for="new-role">Role:</label>
+          <select id="new-role" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="new-password">Password:</label>
+          <input type="password" id="new-password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password:</label>
+          <input type="password" id="confirm-password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="section">
+    <h2>Password Reset</h2>
+    <div id="reset-message" class="message"></div>
+    
+    <div class="password-reset-form" id="password-reset-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reset-new-password">New Password:</label>
+          <input type="password" id="reset-new-password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label for="reset-confirm-password">Confirm Password:</label>
+          <input type="password" id="reset-confirm-password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <button type="button" class="btn btn-warning" onclick="executePasswordReset()">Reset Password</button>
+          <button type="button" class="btn" onclick="cancelPasswordReset()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Manage Users</h2>
+    <div id="users-message" class="message"></div>
+    
+    <table class="users-table" id="users-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Display Name</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const API_URL = window.location.origin;
+let currentUser = null;
+let resetUserId = null;
+
+// Check authentication and load user info
+async function checkAuth() {
+  try {
+    const response = await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'check' })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.authenticated || data.user.role !== 'admin') {
+      window.location.href = '/login.html';
+      return;
+    }
+    
+    currentUser = data.user;
+    document.getElementById('user-display').textContent = `Welcome, ${data.user.borrower_name} (${data.user.role})`;
+    loadUsers();
+  } catch (error) {
+    console.error('Auth check error:', error);
+    window.location.href = '/login.html';
+  }
+}
+
+// Logout function
+async function logout() {
+  try {
+    await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'logout' })
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    window.location.href = '/login.html';
+  }
+}
+
+// Load users
+async function loadUsers() {
+  try {
+    const response = await fetch(`${API_URL}/api/users`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) throw new Error('Failed to load users');
+    
+    const users = await response.json();
+    displayUsers(users);
+  } catch (error) {
+    console.error('Load users error:', error);
+    showMessage('users-message', 'error', 'Failed to load users');
+  }
+}
+
+// Display users in table
+function displayUsers(users) {
+  const tbody = document.querySelector('#users-table tbody');
+  tbody.innerHTML = '';
+  
+  users.forEach(user => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${user.username}</td>
+      <td>${user.borrower_name || '-'}</td>
+      <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+      <td><span class="status-badge status-${user.is_active ? 'active' : 'inactive'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td>${new Date(user.created_at).toLocaleDateString()}</td>
+      <td>
+        <div class="action-buttons">
+          <button class="btn btn-warning" onclick="initPasswordReset(${user.id}, '${user.username}')">Reset Password</button>
+          <button class="btn ${user.is_active ? 'btn-danger' : 'btn-success'}" onclick="toggleUserStatus(${user.id}, ${user.is_active})">${user.is_active ? 'Deactivate' : 'Activate'}</button>
+          ${user.username !== 'admin' && user.username !== currentUser.username ? `<button class="btn btn-danger" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>` : ''}
+        </div>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// Create user form handler
+document.getElementById('create-user-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const username = document.getElementById('new-username').value.trim();
+  const borrowerName = document.getElementById('new-borrower-name').value.trim();
+  const role = document.getElementById('new-role').value;
+  const password = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+  
+  if (password !== confirmPassword) {
+    showMessage('create-message', 'error', 'Passwords do not match');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'create_user',
+        username,
+        password,
+        role,
+        borrower_name: borrowerName
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      showMessage('create-message', 'success', 'User created successfully');
+      document.getElementById('create-user-form').reset();
+      loadUsers();
+    } else {
+      showMessage('create-message', 'error', data.error || 'Failed to create user');
+    }
+  } catch (error) {
+    console.error('Create user error:', error);
+    showMessage('create-message', 'error', 'Network error');
+  }
+});
+
+// Initialize password reset
+function initPasswordReset(userId, username) {
+  resetUserId = userId;
+  document.getElementById('password-reset-form').style.display = 'block';
+  showMessage('reset-message', '', `Resetting password for: ${username}`);
+}
+
+// Execute password reset
+async function executePasswordReset() {
+  const newPassword = document.getElementById('reset-new-password').value;
+  const confirmPassword = document.getElementById('reset-confirm-password').value;
+  
+  if (newPassword !== confirmPassword) {
+    showMessage('reset-message', 'error', 'Passwords do not match');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showMessage('reset-message', 'error', 'Password must be at least 6 characters');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'reset_password',
+        user_id: resetUserId,
+        new_password: newPassword
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      showMessage('reset-message', 'success', 'Password reset successfully');
+      cancelPasswordReset();
+    } else {
+      showMessage('reset-message', 'error', data.error || 'Failed to reset password');
+    }
+  } catch (error) {
+    console.error('Reset password error:', error);
+    showMessage('reset-message', 'error', 'Network error');
+  }
+}
+
+// Cancel password reset
+function cancelPasswordReset() {
+  resetUserId = null;
+  document.getElementById('password-reset-form').style.display = 'none';
+  document.getElementById('reset-new-password').value = '';
+  document.getElementById('reset-confirm-password').value = '';
+  showMessage('reset-message', '', '');
+}
+
+// Toggle user status
+async function toggleUserStatus(userId, currentStatus) {
+  try {
+    const response = await fetch(`${API_URL}/api/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'toggle_status',
+        user_id: userId
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      showMessage('users-message', 'success', `User ${currentStatus ? 'deactivated' : 'activated'} successfully`);
+      loadUsers();
+    } else {
+      showMessage('users-message', 'error', data.error || 'Failed to update user status');
+    }
+  } catch (error) {
+    console.error('Toggle status error:', error);
+    showMessage('users-message', 'error', 'Network error');
+  }
+}
+
+// Delete user
+async function deleteUser(userId, username) {
+  if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/api/users/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      showMessage('users-message', 'success', 'User deleted successfully');
+      loadUsers();
+    } else {
+      showMessage('users-message', 'error', data.error || 'Failed to delete user');
+    }
+  } catch (error) {
+    console.error('Delete user error:', error);
+    showMessage('users-message', 'error', 'Network error');
+  }
+}
+
+// Show message helper
+function showMessage(elementId, type, message) {
+  const element = document.getElementById(elementId);
+  element.className = `message ${type}`;
+  element.textContent = message;
+  element.style.display = message ? 'block' : 'none';
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      element.style.display = 'none';
+    }, 3000);
+  }
+}
+
+// Initialize page
+checkAuth();
+</script>
+
+</body>
+</html>

@@ -13,9 +13,43 @@
       min-height: 100vh;
       line-height: 1.6;
   }
-  nav { background-color: #2c3e50; padding: 12px 20px; text-align: center; }
-  nav a { color: #ecf0f1; margin: 0 15px; text-decoration: none; font-weight: bold; font-size: 16px; }
-  nav a:hover { text-decoration: underline; color: #f39c12; }
+  nav { 
+    background-color: #2c3e50; 
+    padding: 12px 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+  }
+  
+  .nav-links a { 
+    color: #ecf0f1; 
+    margin: 0 15px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 16px; 
+  }
+  
+  .nav-links a:hover { 
+    text-decoration: underline; 
+    color: #f39c12; 
+  }
+  
+  .user-info {
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .logout-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+  }
 
   h1 { text-align: center; margin-top: 25px; color: #34495e; }
 
@@ -172,12 +206,19 @@
 </head>
 <body>
 <nav>
-   <a href="/">Home</a>
-   <a href="/newloan.html">New Loan</a>
-   <a href="/analysis.html">Analysis</a>
-   <a href="/weekly.html">Weekly Payments</a>
-   <a href="/borrower_summary.html">Borrower Summary</a>
- </nav>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/newloan.html">New Loan</a>
+    <a href="/analysis.html">Analysis</a>
+    <a href="/weekly.html">Weekly Payments</a>
+    <a href="/borrower_summary.html">Borrower Summary</a>
+    <a href="/admin.html">Admin Panel</a>
+  </div>
+  <div class="user-info">
+    <span id="user-display">Loading...</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
 
 <!-- Environment Indicator Banner -->
 <div id="env-banner" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; text-align: center; padding: 8px 15px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -528,10 +569,51 @@ function showEnvironmentBanner(){
 
 // Call both on load
 window.onload = function(){
+    checkAuth();
     showEnvironmentBanner();
     loadDashboard();
     loadLoans();
 };
+
+// Check authentication
+async function checkAuth() {
+  try {
+    const response = await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'check' })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.authenticated) {
+      window.location.href = '/login.html';
+      return;
+    }
+    
+    document.getElementById('user-display').textContent = `Welcome, ${data.user.borrower_name} (${data.user.role})`;
+  } catch (error) {
+    console.error('Auth check error:', error);
+    window.location.href = '/login.html';
+  }
+}
+
+// Logout function
+async function logout() {
+  try {
+    await fetch(`${API_URL}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'logout' })
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    window.location.href = '/login.html';
+  }
+}
 </script>
 </body>
 </html>
