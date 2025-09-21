@@ -113,13 +113,13 @@ button:hover { background-color: #2980b9; }
 </div>
 
 <div class="section" id="installments-search-section" style="display: none;">
-  <h2>Installments Due Search</h2>
+  <h2>Installments Search</h2>
   <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
     <div>
-      <label>Select Date:</label>
+      <label>Select Date (up to):</label>
       <input type="date" id="future-date-input" style="margin-left: 10px;">
     </div>
-    <button id="show-installments-btn" onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Due</button>
+    <button id="show-installments-btn" onclick="showInstallmentsDue()" style="background-color: #27ae60;">Show Installments Up To Date</button>
   </div>
   <div id="installments-due-container" style="margin-top: 20px;"></div>
 </div>
@@ -406,14 +406,7 @@ async function showInstallmentsDue(){
         today.setHours(0, 0, 0, 0); // Set to start of today
         futureDate.setHours(23, 59, 59, 999); // Set to end of selected date
 
-        if(futureDate < today){
-            alert("Please select today or a future date");
-            // Reset button state
-            button.disabled = false;
-            button.classList.remove('processing');
-            button.textContent = 'Show Installments Due';
-            return;
-        }
+        // Removed date restriction - now allows past dates too
 
     const loansRes = await fetch(`${API_URL}/api/loans`);
     const loans = await loansRes.json();
@@ -495,11 +488,11 @@ async function showInstallmentsDue(){
     console.log("Filtered installments for borrower:", filteredInstallments.length);
 
     if(filteredInstallments.length === 0){
-        container.innerHTML = `<p>No installments due up to the selected date for borrower ID "${borrowerId}".</p>`;
+        container.innerHTML = `<p>No installments found up to the selected date for borrower ID "${borrowerId}".</p>`;
         // Reset button state
         button.disabled = false;
         button.classList.remove('processing');
-        button.textContent = 'Show Installments Due';
+        button.textContent = 'Show Installments Up To Date';
         return;
     }
 
@@ -514,7 +507,7 @@ async function showInstallmentsDue(){
     filteredInstallments.sort((a, b) => a.dueDate - b.dueDate);
 
     let tableHTML = `
-    <h3>Installments Due Up To ${futureDate.toLocaleDateString('en-US')}</h3>
+    <h3>Installments Up To ${futureDate.toLocaleDateString('en-US')}</h3>
     <table>
     <thead>
     <tr>
@@ -562,7 +555,7 @@ async function showInstallmentsDue(){
     // Reset button state
     button.disabled = false;
     button.classList.remove('processing');
-    button.textContent = 'Show Installments Due';
+    button.textContent = 'Show Installments Up To Date';
 
     } catch (error) {
         console.error("Error in showInstallmentsDue:", error);
@@ -573,7 +566,7 @@ async function showInstallmentsDue(){
         if(button) {
             button.disabled = false;
             button.classList.remove('processing');
-            button.textContent = 'Show Installments Due';
+            button.textContent = 'Show Installments Up To Date';
         }
     }
 }
