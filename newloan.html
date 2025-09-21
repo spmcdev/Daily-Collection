@@ -5,10 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>New Loan</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f8; }
-nav { background-color: #2c3e50; padding: 12px 20px; text-align: center; }
-nav a { color: #ecf0f1; margin: 0 15px; text-decoration: none; font-weight: bold; font-size: 16px; }
-nav a:hover { color: #f39c12; text-decoration: underline; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  margin: 0; 
+  padding: 0; 
+  background: linear-gradient(135deg, #f4f6f8 0%, #e8ecf1 100%); 
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+nav { 
+  background-color: #2c3e50; 
+  padding: 12px 20px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+}
+
+.nav-links a { 
+  color: #ecf0f1; 
+  margin: 0 15px; 
+  text-decoration: none; 
+  font-weight: bold; 
+  font-size: 16px; 
+}
+
+.nav-links a:hover { 
+  text-decoration: underline; 
+  color: #f39c12; 
+}
+
+.user-info {
+  color: #ecf0f1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+}
 h1 { text-align: center; margin-top: 25px; color: #34495e; }
 
 form { max-width: 400px; margin: 20px auto; display: flex; flex-direction: column; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
@@ -21,12 +63,19 @@ button:hover { background-color: #2980b9; }
 <body>
 
 <nav>
-    <a href="/">Home</a>
-   <a href="/newloan.html">New Loan</a>
-   <a href="/analysis.html">Analysis</a>
-   <a href="/weekly.html">Weekly Payments</a>
-   <a href="/borrower_summary.html">Borrower Summary</a>
- </nav>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/newloan.html" style="color: #f39c12;">New Loan</a>
+    <a href="/analysis.html">Analysis</a>
+    <a href="/weekly.html">Weekly Payments</a>
+    <a href="/borrower_summary.html">Borrower Summary</a>
+    <a href="/admin.html" id="admin-link">Admin Panel</a>
+  </div>
+  <div class="user-info">
+    <span id="user-display">Loading...</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
 
 <!-- Environment Indicator Banner -->
 <div id="env-banner" style="display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; text-align: center; padding: 8px 15px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -119,7 +168,57 @@ function showEnvironmentBanner(){
 // Call on load
 window.onload = function(){
     showEnvironmentBanner();
+    checkAuth();
 };
+
+// Authentication functions
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_URL}/api/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'check' })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.authenticated) {
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        // Update user display
+        const userDisplay = document.getElementById('user-display');
+        if (userDisplay) {
+            userDisplay.textContent = `${data.user.borrower_name || data.user.username} (${data.user.role})`;
+        }
+        
+        // Show/hide admin link based on role
+        const adminLink = document.getElementById('admin-link');
+        if (adminLink) {
+            adminLink.style.display = data.user.role === 'admin' ? 'inline' : 'none';
+        }
+        
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login.html';
+    }
+}
+
+async function logout() {
+    try {
+        await fetch(`${API_URL}/api/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'logout' })
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+    window.location.href = '/login.html';
+}
 </script>
 
 </body>

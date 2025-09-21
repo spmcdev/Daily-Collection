@@ -5,10 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loan Analysis</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f8; }
-nav { background-color: #2c3e50; padding: 12px 20px; text-align: center; }
-nav a { color: #ecf0f1; margin: 0 15px; text-decoration: none; font-weight: bold; font-size: 16px; }
-nav a:hover { color: #f39c12; text-decoration: underline; }
+body { 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  margin: 0; 
+  padding: 0; 
+  background: linear-gradient(135deg, #f4f6f8 0%, #e8ecf1 100%); 
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+nav { 
+  background-color: #2c3e50; 
+  padding: 12px 20px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+}
+
+.nav-links a { 
+  color: #ecf0f1; 
+  margin: 0 15px; 
+  text-decoration: none; 
+  font-weight: bold; 
+  font-size: 16px; 
+}
+
+.nav-links a:hover { 
+  text-decoration: underline; 
+  color: #f39c12; 
+}
+
+.user-info {
+  color: #ecf0f1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+}
 h1 { text-align: center; margin-top: 25px; color: #34495e; }
 .section { max-width: 1200px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
 .section h2 { text-align: center; margin-bottom: 20px; }
@@ -27,11 +69,18 @@ tbody tr:hover { background-color: #ecf0f1; transition: 0.3s; }
 </head>
 <body>
 <nav>
- <a href="index.html">Home</a>
-  <a href="newloan.html">New Loan</a>
-  <a href="analysis.html">Analysis</a>
-  <a href="weekly.html">Weekly Payments</a>
-  <a href="borrower_summary.html">Borrower Summary</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/newloan.html">New Loan</a>
+    <a href="/analysis.html" style="color: #f39c12;">Analysis</a>
+    <a href="/weekly.html">Weekly Payments</a>
+    <a href="/borrower_summary.html">Borrower Summary</a>
+    <a href="/admin.html" id="admin-link">Admin Panel</a>
+  </div>
+  <div class="user-info">
+    <span id="user-display">Loading...</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
 </nav>
 
 <!-- Environment Indicator Banner -->
@@ -482,6 +531,7 @@ async function checkOverdue() {
 
 window.onload = function(){
     showEnvironmentBanner();
+    checkAuth();
     initAnalysis();
 };
 
@@ -497,6 +547,46 @@ function showEnvironmentBanner(){
     } else {
         banner.style.display = 'none';
     }
+}
+
+// Check authentication status
+function checkAuth() {
+    fetch('/api/auth/verify')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const user = data.user;
+            const userNameSpan = document.getElementById('userName');
+            
+            if (userNameSpan) {
+                userNameSpan.textContent = user.username;
+            }
+            
+            // Show/hide admin features based on user role
+            if (user.role !== 'admin') {
+                window.location.href = '/index.html';
+            }
+        })
+        .catch(error => {
+            console.error('Auth check failed:', error);
+            window.location.href = '/login.html';
+        });
+}
+
+// Logout function
+function logout() {
+    fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => {
+            window.location.href = '/login.html';
+        })
+        .catch(error => {
+            console.error('Logout failed:', error);
+            window.location.href = '/login.html';
+        });
 }
 </script>
 </body>
